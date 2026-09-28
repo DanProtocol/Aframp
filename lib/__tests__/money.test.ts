@@ -41,10 +41,12 @@ describe('parseAmountToStroops', () => {
     expect(parseAmountToStroops('.')).toBeNull()
   })
 
-  it('round-trips through formatStroops', () => {
-    const stroops = parseAmountToStroops('123.4567')
-    expect(stroops).not.toBeNull()
-    expect(formatStroops(stroops!)).toBe('123.4567')
+  it('round-trips several stroop amounts through formatStroops', () => {
+    const amounts = [0n, 1n, 10_000_000n, 12_345_678n, 99_999_999n]
+
+    for (const amount of amounts) {
+      expect(parseAmountToStroops(formatStroops(amount))).toBe(amount)
+    }
   })
 })
 

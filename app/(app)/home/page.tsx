@@ -13,6 +13,7 @@ import { TopAssets } from '@/components/wallet/top-assets'
 import { ErrorState } from '@/components/ui/error-state'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { OnboardingChecklist } from '@/components/onboarding/onboarding-checklist'
+import { PushNotificationOptIn } from '@/components/push-notification-opt-in'
 import { api, type Balance, type Payment, type PaymentRequest } from '@/lib/api'
 import { useAuthenticatedSession } from '@/components/session-provider'
 
@@ -76,6 +77,10 @@ export default function HomePage() {
 
       <div className="mt-6">
         <OnboardingChecklist />
+      </div>
+
+      <div className="mt-4">
+        <PushNotificationOptIn ready={balances !== null} />
       </div>
 
       <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">

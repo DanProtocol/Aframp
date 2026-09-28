@@ -1,10 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { AdminTable } from '@/components/admin/admin-table'
 import { Badge } from '@/components/ui/badge'
-import { api, type AdminUserRow } from '@/lib/api'
+import { api } from '@/lib/api'
 import { useAuthenticatedSession } from '@/components/session-provider'
+import { useAdminPagination } from '@/hooks/use-admin-pagination'
 
 function formatWhen(iso: string): string {
   return new Date(iso).toLocaleString('en-NG', {
@@ -18,27 +19,13 @@ function formatWhen(iso: string): string {
 
 export default function AdminUsersPage() {
   const { token } = useAuthenticatedSession()
-  const [rows, setRows] = useState<AdminUserRow[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const load = useCallback(
-    async (signal?: AbortSignal) => {
-      setError(null)
-      try {
-        setRows(await api.adminUsers(token, 100, signal))
-      } catch (cause) {
-        if (cause instanceof DOMException && cause.name === 'AbortError') return
-        setError(cause instanceof Error ? cause.message : 'Could not load users')
-      }
-    },
-    [token]
+  const { rows, error, page, pageSize, hasNextPage, setPage, retry } = useAdminPagination(
+    useCallback(
+      (requestedPage, requestedPageSize, signal) =>
+        api.adminUsers(token, requestedPage, requestedPageSize, signal),
+      [token]
+    )
   )
-
-  useEffect(() => {
-    const controller = new AbortController()
-    void load(controller.signal)
-    return () => controller.abort()
-  }, [load])
 
   return (
     <div>
@@ -51,7 +38,11 @@ export default function AdminUsersPage() {
         <AdminTable
           rows={rows}
           error={error}
-          onRetry={() => void load()}
+          onRetry={retry}
+          page={page}
+          pageSize={pageSize}
+          hasNextPage={hasNextPage}
+          onPageChange={setPage}
           getRowKey={(row) => row.id}
           emptyMessage="No users yet."
           columns={[
@@ -60,11 +51,7 @@ export default function AdminUsersPage() {
             {
               header: 'Admin',
               render: (row) =>
-                row.is_admin ? (
-                  <Badge>Admin</Badge>
-                ) : (
-                  <span className="text-dim">—</span>
-                ),
+                row.is_admin ? <Badge>Admin</Badge> : <span className="text-dim">—</span>,
             },
             {
               header: 'Merchant',

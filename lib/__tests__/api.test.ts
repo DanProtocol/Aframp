@@ -175,7 +175,9 @@ describe('api', () => {
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe('/backend/signup')
     expect(init.method).toBe('POST')
-    expect(init.body).toBe('{"email":"a@b.c","password":"pw","name":"Name","phone_number":"08011122233"}')
+    expect(init.body).toBe(
+      '{"email":"a@b.c","password":"pw","name":"Name","phone_number":"08011122233"}'
+    )
     expect(result).toEqual({ challenge_id: 'chal-1', expires_in_secs: 600 })
   })
 
@@ -294,5 +296,28 @@ describe('api', () => {
     fetchMock.mockResolvedValue(jsonResponse([]))
     await api.listWithdrawals('tok')
     expect(fetchMock.mock.calls[0][0]).toBe('/backend/withdrawals?limit=50')
+  })
+
+  it('admin list methods request a server-side page of 25 by default', async () => {
+    const calls = [
+      [api.adminUsers, '/backend/admin/users'],
+      [api.adminMerchants, '/backend/admin/merchants'],
+      [api.adminWallets, '/backend/admin/wallets'],
+      [api.adminTransactions, '/backend/admin/transactions'],
+      [api.adminWithdrawals, '/backend/admin/withdrawals'],
+      [api.adminPaymentRequests, '/backend/admin/payment-requests'],
+    ] as const
+
+    for (const [method, endpoint] of calls) {
+      fetchMock.mockResolvedValueOnce(jsonResponse([]))
+      await method('tok')
+      expect(fetchMock.mock.calls.at(-1)?.[0]).toBe(`${endpoint}?page=1&page_size=25`)
+    }
+  })
+
+  it('admin list methods accept an explicit page and page size', async () => {
+    fetchMock.mockResolvedValue(jsonResponse([]))
+    await api.adminUsers('tok', 3, 40)
+    expect(fetchMock.mock.calls[0][0]).toBe('/backend/admin/users?page=3&page_size=40')
   })
 })

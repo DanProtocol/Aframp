@@ -9,6 +9,7 @@ import {
   type Me,
   type OtpChallengeResponse,
 } from '@/lib/api'
+import { clearCsrfToken, getCsrfToken } from '@/lib/csrf'
 
 const STORAGE_KEY = 'aframp.session'
 
@@ -26,7 +27,12 @@ interface SessionContextValue {
    * no-phone accounts) vs a challenge (everyone else) that needs `/verify`. */
   signIn: (email: string, password: string) => Promise<LoginResult>
   /** Always a challenge — the account doesn't exist until `completeOtp` succeeds. */
-  signUp: (email: string, password: string, name: string, phoneNumber: string) => Promise<OtpChallengeResponse>
+  signUp: (
+    email: string,
+    password: string,
+    name: string,
+    phoneNumber: string
+  ) => Promise<OtpChallengeResponse>
   completeOtp: (challengeId: string, code: string) => Promise<void>
   signOut: () => void
   /** Re-fetches /me and updates any cached profile data. */
@@ -51,6 +57,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [me, setMe] = useState<Me | null>(null)
 
   useEffect(() => {
+    // Mint the CSRF token up front rather than lazily on the first mutation:
+    // `middleware.ts` rejects a state-changing request that arrives without
+    // one, and seeding here means even an immediate submit has a token.
+    getCsrfToken()
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY)
       if (stored) setSession(JSON.parse(stored) as Session)
@@ -81,9 +91,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [persist]
   )
 
-  const signUp = useCallback((email: string, password: string, name: string, phoneNumber: string) => {
-    return api.signup(email, password, name, phoneNumber)
-  }, [])
+  const signUp = useCallback(
+    (email: string, password: string, name: string, phoneNumber: string) => {
+      return api.signup(email, password, name, phoneNumber)
+    },
+    []
+  )
 
   const completeOtp = useCallback(
     async (challengeId: string, code: string) => {
@@ -97,6 +110,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // session, but it's the only thing that clears the server-side cookie.
     if (session) api.logout(session.token).catch(() => {})
     window.localStorage.removeItem(STORAGE_KEY)
+    // The token is bound to the session that just ended; dropping it means
+    // the next sign-in starts from a fresh one instead of reusing a value
+    // that was readable before the logout.
+    clearCsrfToken()
     setSession(null)
     setMe(null)
   }, [session])

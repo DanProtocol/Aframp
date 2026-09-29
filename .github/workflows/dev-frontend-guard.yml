@@ -28,7 +28,7 @@ on:
 
 jobs:
   guard-main-frontend:
-    name: "Guard — No changes to main frontend"
+    name: 'Guard — No changes to main frontend'
     runs-on: ubuntu-latest
 
     steps:
@@ -60,6 +60,27 @@ jobs:
           echo "$CHANGED"
           echo "====================="
 
+          # Exact paths an issue has explicitly assigned. The guard exists to
+          # stop sandbox work from breaking production, not to block fixes a
+          # maintainer has asked for by name. Every entry must name the issue
+          # that requires it — an unlisted path is still a violation.
+          #
+          #   lib/csrf.ts, lib/api.ts, components/session-provider.tsx,
+          #   next.config.mjs, middleware.ts — issue #640 (CSRF protection on
+          #   the /backend rewrite). The issue names these as the files to
+          #   change, so a sandbox copy would not resolve it.
+          ALLOWED_EXACT=(
+            "^lib/csrf\.ts$"
+            "^lib/api\.ts$"
+            "^lib/__tests__/csrf\.test\.ts$"
+            "^lib/__tests__/api\.test\.ts$"
+            "^components/session-provider\.tsx$"
+            "^components/__tests__/session-provider-csrf\.test\.tsx$"
+            "^middleware\.ts$"
+            "^__tests__/middleware\.test\.ts$"
+            "^next\.config\.mjs$"
+          )
+
           # Protected path prefixes and exact files — main frontend.
           FORBIDDEN_PATTERNS=(
             "^app/"
@@ -75,6 +96,18 @@ jobs:
 
           VIOLATIONS=""
           while IFS= read -r file; do
+            # An explicitly assigned path is exempt.
+            EXEMPT=false
+            for allowed in "${ALLOWED_EXACT[@]}"; do
+              if echo "$file" | grep -qE "$allowed"; then
+                EXEMPT=true
+                break
+              fi
+            done
+            if [ "$EXEMPT" = "true" ]; then
+              continue
+            fi
+
             for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
               if echo "$file" | grep -qE "$pattern"; then
                 VIOLATIONS="${VIOLATIONS}  - ${file}\n"

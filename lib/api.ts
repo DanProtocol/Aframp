@@ -16,6 +16,12 @@ const BASE_URL = '/backend'
 /**
  * Amount fields are `i64` on the wire. JSON.parse would silently round anything
  * past 2^53, so these keys are re-quoted before parsing and revived as bigint.
+ *
+ * **Every one of these is denominated in stroops, never in whole asset units.**
+ * 1 unit = 10,000,000 stroops (`STROOPS_PER_UNIT` in lib/money.ts), so
+ * `amount_stroops: 500000000` is 50 cNGN. A new amount field has to be added
+ * here as well as to its interface, or `parseWithBigInts` will hand back a
+ * lossy `number` and the value silently rounds.
  */
 const BIGINT_KEYS = new Set(['amount_stroops', 'available', 'pending', 'fee_stroops', 'network_fee_stroops', 'total_stroops'])
 
@@ -104,7 +110,9 @@ export interface Wallet {
 export interface Balance {
   merchant_id: UUID
   asset: string
+  /** Spendable now, in stroops. Format with `formatStroops` — see lib/money.ts. */
   available: bigint
+  /** Incoming but not yet spendable, in stroops. Format with `formatStroops`. */
   pending: bigint
   updated_at: string
 }
@@ -117,6 +125,7 @@ export interface Payment {
   wallet_id: UUID
   wallet_address: string
   tx_hash: string
+  /** Amount received, in stroops. Format with `formatStroops` — see lib/money.ts. */
   amount_stroops: bigint
   asset: string
   network: string
@@ -133,7 +142,9 @@ export interface PaymentRequest {
   merchant_id: UUID
   address: string
   network: string
+  /** Amount asked for, in stroops. Format with `formatStroops` — see lib/money.ts. */
   amount_stroops: bigint
+  /** Amount actually received so far, in stroops. Below `amount_stroops` when partial. */
   amount_paid_stroops?: bigint
   asset: string
   memo: string
@@ -151,6 +162,7 @@ export interface Refund {
   id: UUID
   payment_id: UUID
   merchant_id: UUID
+  /** Amount returned, in stroops. Format with `formatStroops` — see lib/money.ts. */
   amount_stroops: bigint
   asset: string
   status: RefundStatus
@@ -164,6 +176,7 @@ export type WithdrawalStatus = 'pending' | 'processing' | 'completed' | 'failed'
 export interface Withdrawal {
   id: UUID
   merchant_id: UUID
+  /** Amount cashed out, in stroops. Format with `formatStroops` — see lib/money.ts. */
   amount_stroops: bigint
   asset: string
   status: WithdrawalStatus
@@ -177,8 +190,11 @@ export interface Withdrawal {
 }
 
 export interface FeeEstimate {
+  /** Platform fee, in stroops. Format with `formatStroops` — see lib/money.ts. */
   fee_stroops: bigint
+  /** Stellar network resource fee, in stroops (usually 0.00001 XLM). */
   network_fee_stroops: bigint
+  /** `fee_stroops + network_fee_stroops`, in stroops. */
   total_stroops: bigint
 }
 
@@ -186,6 +202,7 @@ export interface Remittance {
   id: UUID
   merchant_id: UUID
   destination_address: string
+  /** Amount sent, in stroops. Format with `formatStroops` — see lib/money.ts. */
   amount_stroops: bigint
   asset: string
   memo: string | null
@@ -209,7 +226,9 @@ export interface ApiKey {
 /** Platform-wide, not merchant-scoped — every `admin/*` call requires `Me.is_admin`. */
 export interface AssetTotal {
   asset: string
+  /** Summed across every merchant, in stroops. Format with `formatStroops`. */
   available: bigint
+  /** Summed across every merchant, in stroops. Format with `formatStroops`. */
   pending: bigint
 }
 
@@ -262,6 +281,7 @@ export interface AdminTransactionRow {
   merchant_name: string
   wallet_address: string
   tx_hash: string
+  /** Amount received, in stroops. Format with `formatStroops` — see lib/money.ts. */
   amount_stroops: bigint
   asset: string
   network: string
@@ -275,6 +295,7 @@ export interface AdminWithdrawalRow {
   id: UUID
   merchant_id: UUID
   merchant_name: string
+  /** Amount cashed out, in stroops. Format with `formatStroops` — see lib/money.ts. */
   amount_stroops: bigint
   asset: string
   status: WithdrawalStatus
@@ -291,6 +312,7 @@ export interface AdminPaymentRequestRow {
   id: UUID
   merchant_id: UUID
   merchant_name: string
+  /** Amount asked for, in stroops. Format with `formatStroops` — see lib/money.ts. */
   amount_stroops: bigint
   asset: string
   memo: string
@@ -456,6 +478,7 @@ export const api = {
 
   createPaymentRequest: (
     token: string,
+    /** Amount to charge, in stroops. Build with `parseAmountToStroops` — see lib/money.ts. */
     amountStroops: bigint,
     asset?: string,
     expiresInSecs?: number,
@@ -482,6 +505,7 @@ export const api = {
   createRefund: (
     token: string,
     paymentId: string,
+    /** Amount to refund, in stroops. Build with `parseAmountToStroops` — see lib/money.ts. */
     amountStroops: bigint,
     recipientAddress: string,
     reason?: string
@@ -501,6 +525,7 @@ export const api = {
 
   createWithdrawal: (
     token: string,
+    /** Amount to cash out, in stroops. Build with `parseAmountToStroops` — see lib/money.ts. */
     amountStroops: bigint,
     bankCode: string,
     accountNumber: string,
@@ -561,6 +586,7 @@ export const api = {
 
   getRemittanceFeeEstimate: (
     token: string,
+    /** Amount being quoted for, in stroops. Build with `parseAmountToStroops`. */
     amountStroops: bigint,
     asset = 'XLM',
     signal?: AbortSignal
@@ -573,6 +599,7 @@ export const api = {
   createRemittance: (
     token: string,
     destinationAddress: string,
+    /** Amount to send, in stroops. Build with `parseAmountToStroops` — see lib/money.ts. */
     amountStroops: bigint,
     asset = 'XLM',
     memo?: string

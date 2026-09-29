@@ -1,5 +1,6 @@
 import type React from 'react'
 import type { Metadata, Viewport } from 'next'
+import { headers } from 'next/headers'
 import { Atkinson_Hyperlegible } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { SessionProvider } from '@/components/session-provider'
@@ -31,6 +32,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const nonce = headers().get('x-nonce') ?? undefined
+
   return (
     <html lang="en" className={atkinson.variable} suppressHydrationWarning>
       <body className="font-sans antialiased" suppressHydrationWarning>
@@ -43,6 +46,7 @@ export default function RootLayout({
           <SessionProvider>{children}</SessionProvider>
         </ThemeProvider>
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {

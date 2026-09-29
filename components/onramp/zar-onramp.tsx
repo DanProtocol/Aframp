@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { OZOW_BANKS } from '@/lib/payment-providers'
 import { calculateFees, formatCurrency } from '@/lib/payment-providers'
 import { api } from '@/lib/api'
+import { redirectTo } from '@/lib/navigation'
 
 interface ZarOnrampProps {
   token: string
@@ -40,15 +41,10 @@ export function ZarOnramp({ token }: ZarOnrampProps) {
 
     try {
       const returnUrl = `${window.location.origin}/charge?provider=ozow`
-      const { payment_url } = await api.createOzowPayment(
-        token,
-        amountNum,
-        selectedBank,
-        returnUrl
-      )
+      const { payment_url } = await api.createOzowPayment(token, amountNum, selectedBank, returnUrl)
 
       // Redirect to Ozow payment page
-      window.location.href = payment_url
+      redirectTo(payment_url)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to initiate payment')
       setIsProcessing(false)
@@ -59,9 +55,7 @@ export function ZarOnramp({ token }: ZarOnrampProps) {
     <Card>
       <CardHeader>
         <CardTitle>Buy Crypto with ZAR</CardTitle>
-        <CardDescription>
-          Instant bank transfer via Ozow - Funds arrive in minutes
-        </CardDescription>
+        <CardDescription>Instant bank transfer via Ozow - Funds arrive in minutes</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">

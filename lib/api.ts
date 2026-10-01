@@ -5,8 +5,16 @@
  * next.config.mjs), which forwards it server-side to the real backend origin
  * (`NEXT_API_URL`) — the browser never learns that origin directly.
  *
+ * That rewrite is same-origin as far as the browser is concerned, so it
+ * attaches cookies to mutating requests without any CORS preflight. Every
+ * state-changing call therefore also double-submits the CSRF token from
+ * `lib/csrf.ts`, which `middleware.ts` verifies before the request is
+ * forwarded. See docs/SECURITY_CSRF.md.
+ *
  * Errors always come back as `{ "error": "message" }`.
  */
+
+import { CSRF_HEADER_NAME, getCsrfToken, isMutatingMethod } from '@/lib/csrf'
 
 /** Backend ids are UUIDs; aliased for readability, not validated here. */
 type UUID = string
@@ -386,14 +394,23 @@ interface RequestOptions {
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, token, signal } = options
 
+  // Only state-changing verbs carry the token. Sending it on GET as well
+  // would just widen the surface for leaking it through logs and referrers.
+  const csrfToken = isMutatingMethod(method) ? getCsrfToken() : null
+
   let response: Response
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       method,
       signal,
+      // Same-origin, and the session cookie is `SameSite=Strict` — an explicit
+      // `same-origin` keeps that promise if the cookie's attributes ever
+      // regress, and keeps us from ever attaching anything cross-origin.
+      credentials: 'same-origin',
       headers: {
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(csrfToken ? { [CSRF_HEADER_NAME]: csrfToken } : {}),
       },
       body: body === undefined ? undefined : stringifyWithBigInts(body),
     })

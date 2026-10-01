@@ -64,6 +64,10 @@ const nextConfig = {
   // (deliberately not NEXT_PUBLIC_*) never reaches client-side code — it
   // can't leak via devtools, a bundle diff, or CSP `connect-src`.
   // See docs/adr-001-backend-proxy.md for the rationale and consequences.
+  // Because the rewrite below is same-origin, the browser attaches cookies to
+  // it with no CORS preflight — the CSRF precondition. `middleware.ts` gates
+  // every state-changing `/backend/*` request on a double-submitted token
+  // before it reaches here (see lib/csrf.ts and docs/SECURITY_CSRF.md).
   rewrites() {
     const backendUrl = (process.env.NEXT_API_URL ?? 'http://127.0.0.1:3000').replace(/\/$/, '')
     validateBackendUrl(backendUrl)

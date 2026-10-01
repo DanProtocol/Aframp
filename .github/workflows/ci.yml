@@ -228,10 +228,12 @@ jobs:
       - name: Run tests with coverage
         run: docker compose -f docker-compose.test.yml run --rm aframp-test
 
+      # Runs on the runner, not in the test container: the check needs git and
+      # the repo history (fetch-depth: 0 above), which the Alpine image lacks.
+      # It reads ./coverage, which the container wrote through its volume mount.
       - name: Require 80% coverage on changed files
         run: |
-          docker compose -f docker-compose.test.yml run --rm aframp-test \
-            node scripts/check-diff-coverage.js \
+          node scripts/check-diff-coverage.js \
             "${{ github.event.pull_request.base.sha }}" \
             "${{ github.event.pull_request.head.sha }}"
 

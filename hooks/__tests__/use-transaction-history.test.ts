@@ -69,4 +69,55 @@ describe('useTransactionHistory', () => {
     expect(result.current.currentPage).toBe(3)
     expect(pageChange).toHaveBeenCalledWith(3)
   })
+
+  it('filters by transaction type', () => {
+    const type = mockTransactions[0].type
+    const { result } = renderHook(() =>
+      useTransactionHistory({ transactions: mockTransactions, pageSize: 50 })
+    )
+
+    act(() => {
+      result.current.onFilterChange(type)
+    })
+
+    expect(result.current.filteredTransactions.length).toBeGreaterThan(0)
+    expect(result.current.filteredTransactions.every((tx) => tx.type === type)).toBe(true)
+    expect(result.current.currentPage).toBe(1)
+  })
+
+  it.each(['type', 'asset'] as const)('sorts by %s alphabetically, descending first', (field) => {
+    const { result } = renderHook(() =>
+      useTransactionHistory({ transactions: mockTransactions, pageSize: 50 })
+    )
+
+    act(() => {
+      result.current.onSortChange(field)
+    })
+
+    const values = result.current.sortedTransactions.map((tx) => tx[field])
+    expect(values).toEqual([...values].sort((a, b) => b.localeCompare(a)))
+    expect(result.current.sortDirection).toBe('desc')
+  })
+
+  it('toggles the direction when the same field is chosen again', () => {
+    const { result } = renderHook(() =>
+      useTransactionHistory({ transactions: mockTransactions, pageSize: 50 })
+    )
+
+    act(() => {
+      result.current.onSortChange('status')
+    })
+    const descending = result.current.sortedTransactions.map((tx) => tx.id)
+
+    act(() => {
+      result.current.onSortChange('status')
+    })
+
+    expect(result.current.sortDirection).toBe('asc')
+    const ascendingStatuses = result.current.sortedTransactions.map((tx) => tx.status)
+    const descendingStatuses = descending.map(
+      (id) => mockTransactions.find((tx) => tx.id === id)!.status
+    )
+    expect(ascendingStatuses).toEqual([...descendingStatuses].reverse())
+  })
 })

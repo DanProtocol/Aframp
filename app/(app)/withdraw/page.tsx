@@ -39,6 +39,7 @@ import {
   getBankOptions,
   getWithdrawableAssets,
   getWithdrawalAssetConfig,
+  validateWithdrawal,
   type WithdrawalAsset,
 } from '@/lib/withdraw'
 import { BANKS, type Bank } from '@/lib/banks'
@@ -177,25 +178,9 @@ export default function WithdrawPage() {
     }
   }, [withdrawableAssets, asset, selectAsset])
 
-  function validate(): string | null {
-    if (stroops === null || stroops <= 0n) return 'Enter an amount to cash out.'
-    if (!isWholeKobo(stroops)) return 'Amount must have at most 2 decimal places.'
-    if (stroops < config.minimumStroops)
-      return `The smallest cash-out is ${formatStroops(config.minimumStroops)} ${asset}.`
-    if (stroops > available) return 'That is more than your available balance.'
-    if (!bankCode) return 'Choose your bank.'
-    if (accountNumber.length !== config.accountNumberLength) {
-      return `Account numbers are ${config.accountNumberLength} digits.`
-    }
-    if (!/^\d+$/.test(accountNumber)) {
-      return 'Account number must contain digits only.'
-    }
-    return null
-  }
-
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault()
-    const problem = validate()
+    const problem = validateWithdrawal(stroops, config, available, bankCode, accountNumber)
     if (problem) {
       setError(problem)
       return

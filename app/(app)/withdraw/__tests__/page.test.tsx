@@ -158,6 +158,31 @@ describe('WithdrawPage', () => {
     ).toBeInTheDocument()
   })
 
+  it.each([
+    ['cNGN', '50'],
+    ['cKES', '10'],
+    ['cGHS', '5'],
+  ] as const)('validates %s using its configured currency precision', async (asset, minimum) => {
+    const user = userEvent.setup()
+    mockGetBalances.mockResolvedValue([balance(asset, 10_000_000_000n)])
+    render(<WithdrawPage />)
+    await screen.findByRole('heading', { name: 'Cash out' })
+
+    await user.type(screen.getByLabelText(`Amount (${asset})`), '0.001')
+    await user.click(screen.getByRole('button', { name: 'Cash out' }))
+
+    expect(
+      await screen.findByText('Amount must have at most 2 decimal places.')
+    ).toBeInTheDocument()
+
+    await user.clear(screen.getByLabelText(`Amount (${asset})`))
+    await user.type(screen.getByLabelText(`Amount (${asset})`), '0.01')
+    await user.click(screen.getByRole('button', { name: 'Cash out' }))
+    expect(
+      await screen.findByText(`The smallest cash-out is ${minimum} ${asset}.`)
+    ).toBeInTheDocument()
+  })
+
   it('rejects an amount below the minimum', async () => {
     const user = userEvent.setup()
     mockGetBalances.mockResolvedValue([balance('cNGN', 10_000_000_000n)])

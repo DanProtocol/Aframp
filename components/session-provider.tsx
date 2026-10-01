@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { redirect } from 'next/navigation'
 import {
   api,
   isOffline,
@@ -167,6 +168,6 @@ export function useSession() {
 
 export function useAuthenticatedSession(): Session {
   const { session } = useSession()
-  if (!session) throw new Error('This screen requires a signed-in merchant')
+  if (!session) redirect('/login')
   return session
 }

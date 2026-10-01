@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Copy, Check, Camera, AlertCircle, Clock, TriangleAlert } from 'lucide-react'
 import QRCode from 'react-qr-code'
@@ -16,52 +16,50 @@ interface RequestPageClientProps {
   requestId: string
 }
 
+type CopyTarget = 'wallet' | 'paymentLink' | 'sep7'
+
+// Mock payment request data — in production, fetch from API
+const MOCK_REQUEST = {
+  id: '123456',
+  amount: 100,
+  currency: 'USD',
+  asset: 'USDC',
+  description: 'Payment for consulting services',
+  requesterName: 'John Doe',
+  requesterWallet: 'GBSN2ZJBRFWTQHWRJQE4GKDJJDSGPVTLQNQCQX7QR5W5VKHNHQH',
+  createdAt: new Date(Date.now() - 3600000),
+  expiresAt: new Date(Date.now() + 86400000),
+}
+
 export function RequestPageClient({ requestId }: RequestPageClientProps) {
   const router = useRouter()
   const [request, setRequest] = useState<PaymentRequest | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [scannerOpen, setScannerOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const isMobile = useMediaQuery('(max-width: 767px)')
+  const [copied, setCopied] = useState<CopyTarget | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
   const [scannedAddress, setScannedAddress] = useState<string | null>(null)
-  const [scanError, setScanError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  const fetchRequest = useCallback(
-    async (signal?: AbortSignal) => {
-      setLoading(true)
-      setError(null)
-      try {
-        const data = await api.getPaymentRequest(requestId, signal)
-        setRequest(data)
-      } catch (cause) {
-        if (cause instanceof DOMException && cause.name === 'AbortError') return
-        if (cause instanceof ApiError && cause.status === 404) {
-          setError('Payment request not found.')
-        } else if (cause instanceof ApiError && cause.status === 0) {
-          setError("We can't reach the server right now. Check your connection and try again.")
-        } else {
-          setError(cause instanceof Error ? cause.message : 'Could not load this payment request.')
-        }
-      } finally {
-        setLoading(false)
-      }
-    },
-    [requestId]
-  )
+  const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    const controller = new AbortController()
-    void fetchRequest(controller.signal)
-    return () => controller.abort()
-  }, [fetchRequest])
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => {
+      window.removeEventListener('resize', checkMobile)
+      if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current)
+    }
+  }, [])
 
-  const handleCopyWallet = async () => {
-    if (!request) return
-    await navigator.clipboard.writeText(request.address)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const handleCopy = async (target: CopyTarget, value: string) => {
+    await navigator.clipboard.writeText(value)
+    setCopied(target)
+    if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current)
+    copyFeedbackTimer.current = setTimeout(() => {
+      setCopied((current) => (current === target ? null : current))
+      copyFeedbackTimer.current = null
+    }, 2000)
   }
 
   const handleScanPayment = async (address: string) => {
@@ -254,6 +252,51 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
             <p className="text-xs text-muted-foreground text-center">
               Scan with {request.asset} wallet to pay this request
             </p>
+            <div className="flex w-full flex-col gap-2">
+              <Button
+                onClick={() => void handleCopy('paymentLink', window.location.href)}
+                variant="outline"
+                size="sm"
+                className={cn(
+                  'h-9 w-full gap-2 transition-all',
+                  copied === 'paymentLink' &&
+                    'border-emerald-500/40 text-emerald-600 bg-emerald-500/5'
+                )}
+              >
+                {copied === 'paymentLink' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    Copy payment link
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => void handleCopy('sep7', qrValue)}
+                variant="outline"
+                size="sm"
+                className={cn(
+                  'h-9 w-full gap-2 transition-all',
+                  copied === 'sep7' && 'border-emerald-500/40 text-emerald-600 bg-emerald-500/5'
+                )}
+              >
+                {copied === 'sep7' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    Copy SEP-7 URI
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
 
           {/* ── Wallet address ── */}
@@ -268,15 +311,15 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
             </div>
             <div className="px-4 pb-4 flex gap-2 mt-2">
               <Button
-                onClick={handleCopyWallet}
+                onClick={() => void handleCopy('wallet', MOCK_REQUEST.requesterWallet)}
                 variant="outline"
                 size="sm"
                 className={cn(
                   'flex-1 h-9 gap-2 transition-all',
-                  copied && 'border-emerald-500/40 text-emerald-600 bg-emerald-500/5'
+                  copied === 'wallet' && 'border-emerald-500/40 text-emerald-600 bg-emerald-500/5'
                 )}
               >
-                {copied ? (
+                {copied === 'wallet' ? (
                   <>
                     <Check className="w-3.5 h-3.5" />
                     Copied!

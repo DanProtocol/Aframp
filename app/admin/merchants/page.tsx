@@ -1,9 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { AdminTable } from '@/components/admin/admin-table'
-import { api, type AdminMerchantRow } from '@/lib/api'
+import { api } from '@/lib/api'
 import { useAuthenticatedSession } from '@/components/session-provider'
+import { useAdminPagination } from '@/hooks/use-admin-pagination'
 
 function shortenAddress(address: string) {
   return address.length <= 12 ? address : `${address.slice(0, 6)}…${address.slice(-4)}`
@@ -21,27 +22,13 @@ function formatWhen(iso: string): string {
 
 export default function AdminMerchantsPage() {
   const { token } = useAuthenticatedSession()
-  const [rows, setRows] = useState<AdminMerchantRow[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const load = useCallback(
-    async (signal?: AbortSignal) => {
-      setError(null)
-      try {
-        setRows(await api.adminMerchants(token, 100, signal))
-      } catch (cause) {
-        if (cause instanceof DOMException && cause.name === 'AbortError') return
-        setError(cause instanceof Error ? cause.message : 'Could not load merchants')
-      }
-    },
-    [token]
+  const { rows, error, page, pageSize, hasNextPage, setPage, retry } = useAdminPagination(
+    useCallback(
+      (requestedPage, requestedPageSize, signal) =>
+        api.adminMerchants(token, requestedPage, requestedPageSize, signal),
+      [token]
+    )
   )
-
-  useEffect(() => {
-    const controller = new AbortController()
-    void load(controller.signal)
-    return () => controller.abort()
-  }, [load])
 
   return (
     <div>
@@ -54,7 +41,11 @@ export default function AdminMerchantsPage() {
         <AdminTable
           rows={rows}
           error={error}
-          onRetry={() => void load()}
+          onRetry={retry}
+          page={page}
+          pageSize={pageSize}
+          hasNextPage={hasNextPage}
+          onPageChange={setPage}
           getRowKey={(row) => row.id}
           emptyMessage="No merchants yet."
           columns={[

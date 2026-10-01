@@ -18,7 +18,14 @@ const BASE_URL = '/backend'
  * JSON.parse would silently round values past 2^53, so keep this set in sync
  * with the field-name alternatives in parseWithBigInts' pre-parse regex.
  */
-const BIGINT_KEYS = new Set(['amount_stroops', 'available', 'pending', 'fee_stroops', 'network_fee_stroops', 'total_stroops'])
+const BIGINT_KEYS = new Set([
+  'amount_stroops',
+  'available',
+  'pending',
+  'fee_stroops',
+  'network_fee_stroops',
+  'total_stroops',
+])
 
 /**
  * There are no refresh tokens — a 24h expiry just starts returning 401. The
@@ -396,7 +403,10 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     // page that doesn't special-case `status === 0` falls back to showing
     // this message as-is, so it stays generic — no backend URL, nothing
     // that reads like a stack trace.
-    throw new ApiError("We can't reach the server right now. Check your connection and try again.", 0)
+    throw new ApiError(
+      "We can't reach the server right now. Check your connection and try again.",
+      0
+    )
   }
 
   const text = await response.text()
@@ -618,21 +628,39 @@ export const api = {
   adminOverview: (token: string, signal?: AbortSignal) =>
     request<AdminOverview>('/admin/overview', { token, signal }),
 
-  adminUsers: (token: string, limit = 100, signal?: AbortSignal) =>
-    request<AdminUserRow[]>(`/admin/users?limit=${limit}`, { token, signal }),
+  adminUsers: (token: string, page = 1, pageSize = 25, signal?: AbortSignal) =>
+    request<AdminUserRow[]>(`/admin/users?page=${page}&page_size=${pageSize}`, { token, signal }),
 
-  adminMerchants: (token: string, limit = 100, signal?: AbortSignal) =>
-    request<AdminMerchantRow[]>(`/admin/merchants?limit=${limit}`, { token, signal }),
+  adminMerchants: (token: string, page = 1, pageSize = 25, signal?: AbortSignal) =>
+    request<AdminMerchantRow[]>(`/admin/merchants?page=${page}&page_size=${pageSize}`, {
+      token,
+      signal,
+    }),
 
-  adminWallets: (token: string, limit = 100, signal?: AbortSignal) =>
-    request<AdminWalletRow[]>(`/admin/wallets?limit=${limit}`, { token, signal }),
+  adminWallets: (token: string, page = 1, pageSize = 25, signal?: AbortSignal) =>
+    request<AdminWalletRow[]>(`/admin/wallets?page=${page}&page_size=${pageSize}`, {
+      token,
+      signal,
+    }),
 
-  adminTransactions: (token: string, limit = 100, signal?: AbortSignal) =>
-    request<AdminTransactionRow[]>(`/admin/transactions?limit=${limit}`, { token, signal }),
+  adminTransactions: (token: string, page = 1, pageSize = 25, signal?: AbortSignal) =>
+    request<AdminTransactionRow[]>(`/admin/transactions?page=${page}&page_size=${pageSize}`, {
+      token,
+      signal,
+    }),
 
-  adminWithdrawals: (token: string, limit = 100, signal?: AbortSignal) =>
-    request<AdminWithdrawalRow[]>(`/admin/withdrawals?limit=${limit}`, { token, signal }),
+  adminWithdrawals: (token: string, page = 1, pageSize = 25, signal?: AbortSignal) =>
+    request<AdminWithdrawalRow[]>(`/admin/withdrawals?page=${page}&page_size=${pageSize}`, {
+      token,
+      signal,
+    }),
 
-  adminPaymentRequests: (token: string, limit = 100, signal?: AbortSignal) =>
-    request<AdminPaymentRequestRow[]>(`/admin/payment-requests?limit=${limit}`, { token, signal }),
+  adminPaymentRequests: (token: string, page = 1, pageSize = 25, signal?: AbortSignal) =>
+    request<AdminPaymentRequestRow[]>(
+      `/admin/payment-requests?page=${page}&page_size=${pageSize}`,
+      {
+        token,
+        signal,
+      }
+    ),
 }

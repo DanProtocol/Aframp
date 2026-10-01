@@ -1,5 +1,10 @@
 import { useMemo, useState } from 'react'
-import type { QuickFilter, SortDirection, SortField, Transaction } from '@/lib/fixtures/transactions'
+import type {
+  QuickFilter,
+  SortDirection,
+  SortField,
+  Transaction,
+} from '@/lib/fixtures/transactions'
 import { type TransactionStatus } from '@/lib/fixtures/transactions'
 
 interface UseTransactionHistoryOptions {
@@ -95,7 +100,10 @@ export function useTransactionHistory({
 
   const totalPages = Math.max(
     1,
-    Math.ceil((serverMode ? serverTotalCount ?? transactions.length : sortedTransactions.length) / pageSize)
+    Math.ceil(
+      (serverMode ? (serverTotalCount ?? transactions.length) : sortedTransactions.length) /
+        pageSize
+    )
   )
   const currentPage = Math.min(page, totalPages)
 

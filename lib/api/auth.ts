@@ -29,6 +29,9 @@ export interface OtpChallengeResponse {
  */
 export type LoginResult = AuthResponse | OtpChallengeResponse
 
+/** Identity-verification state. Not yet in openapi.yaml; the cash-out page gates on 'approved' (#735). */
+export type KycStatus = 'pending' | 'approved' | 'rejected'
+
 export interface Me {
   user_id: UUID
   email: string
@@ -37,6 +40,7 @@ export interface Me {
   created_at: string
   merchant_id: UUID | null
   merchant_name: string | null
+  kyc_status?: KycStatus | null
 }
 
 export interface UpdateProfileRequest {

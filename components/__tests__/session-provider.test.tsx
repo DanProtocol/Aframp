@@ -1,10 +1,5 @@
 import { renderHook, act, render, screen, waitFor } from '@testing-library/react'
-import {
-  api,
-  setUnauthorizedHandler,
-  type LoginResult,
-  type OtpChallengeResponse,
-} from '@/lib/api'
+import { api, type LoginResult, type Me, type OtpChallengeResponse } from '@/lib/api'
 import { SessionProvider, useSession, useAuthenticatedSession } from '../session-provider'
 
 let unauthorizedCallback: (() => void) | null = null
@@ -17,6 +12,8 @@ jest.mock('@/lib/api', () => ({
     logout: jest.fn(),
     getMe: jest.fn(),
   },
+  isOffline: (cause: unknown) =>
+    typeof cause === 'object' && cause !== null && (cause as { status?: number }).status === 0,
   setUnauthorizedHandler: jest.fn((handler: (() => void) | null) => {
     unauthorizedCallback = handler
   }),
@@ -24,325 +21,322 @@ jest.mock('@/lib/api', () => ({
 
 const mockApi = api as jest.Mocked<typeof api>
 
+type StoredSession = { token: string; userId: string; merchantId: string | null }
+
+const fetchMock = jest.fn()
+
+/**
+ * The provider keeps the session in an httpOnly cookie behind /api/session:
+ * GET restores it, POST persists it, DELETE clears it.
+ */
+function mockSessionRoute(stored: StoredSession | null | 'error' = null) {
+  fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+    if (url !== '/api/session') return Promise.reject(new Error(`unexpected fetch ${url}`))
+    const method = init?.method ?? 'GET'
+    if (method === 'GET') {
+      if (stored === 'error') return Promise.reject(new TypeError('offline'))
+      return Promise.resolve({ json: () => Promise.resolve(stored) })
+    }
+    return Promise.resolve({ json: () => Promise.resolve({ ok: true }) })
+  })
+}
+
+function sessionCalls(method: string) {
+  return fetchMock.mock.calls.filter(
+    ([url, init]) => url === '/api/session' && (init?.method ?? 'GET') === method
+  )
+}
+
+async function renderSession(stored: StoredSession | null | 'error' = null) {
+  mockSessionRoute(stored)
+  const hook = renderHook(() => useSession(), { wrapper: SessionProvider })
+  await waitFor(() => expect(hook.result.current.ready).toBe(true))
+  return hook
+}
+
+const storedSession: StoredSession = { token: 'tok-1', userId: 'u-1', merchantId: 'm-1' }
+
+const meData: Me = {
+  user_id: 'u-1',
+  email: 'me@example.com',
+  name: 'Merchant Me',
+  is_admin: false,
+  created_at: '2026-01-01',
+  merchant_id: 'm-1',
+  merchant_name: 'Test Business',
+}
+
+beforeEach(() => {
+  jest.clearAllMocks()
+  fetchMock.mockReset()
+  globalThis.fetch = fetchMock as unknown as typeof fetch
+  window.localStorage.clear()
+  unauthorizedCallback = null
+})
+
 describe('SessionProvider', () => {
-  beforeEach(() => {
-    window.localStorage.clear()
-    jest.clearAllMocks()
-    unauthorizedCallback = null
-  })
+  describe('restoring the session', () => {
+    it('is not ready until /api/session has answered', async () => {
+      let resolve!: (value: unknown) => void
+      fetchMock.mockReturnValue(new Promise((r) => (resolve = r)))
+      const { result } = renderHook(() => useSession(), { wrapper: SessionProvider })
 
-  it('initializes with ready=true and session=null when storage is empty', () => {
-    const { result } = renderHook(() => useSession(), { wrapper: SessionProvider })
+      expect(result.current.ready).toBe(false)
 
-    expect(result.current.ready).toBe(true)
-    expect(result.current.session).toBeNull()
-    expect(result.current.me).toBeNull()
-  })
-
-  it('restores stored session from localStorage on mount', () => {
-    const initialSession = { token: 'stored-token', userId: 'u-1', merchantId: 'm-1' }
-    window.localStorage.setItem('aframp.session', JSON.stringify(initialSession))
-
-    const { result } = renderHook(() => useSession(), { wrapper: SessionProvider })
-
-    expect(result.current.ready).toBe(true)
-    expect(result.current.session).toEqual(initialSession)
-  })
-
-  it('clears corrupted localStorage entry on mount and keeps session null', () => {
-    window.localStorage.setItem('aframp.session', 'invalid-json{')
-
-    const { result } = renderHook(() => useSession(), { wrapper: SessionProvider })
-
-    expect(result.current.ready).toBe(true)
-    expect(result.current.session).toBeNull()
-    expect(window.localStorage.getItem('aframp.session')).toBeNull()
-  })
-
-  it('signIn success persists session and updates context value for legacy account', async () => {
-    mockApi.login.mockResolvedValue({
-      token: 'tok-legacy',
-      user_id: 'u-legacy',
-      merchant_id: 'm-legacy',
+      await act(async () => {
+        resolve({ json: () => Promise.resolve(null) })
+        await Promise.resolve()
+      })
+      await waitFor(() => expect(result.current.ready).toBe(true))
     })
 
-    const { result } = renderHook(() => useSession(), { wrapper: SessionProvider })
-
-    let loginRes: LoginResult | undefined
-    await act(async () => {
-      loginRes = await result.current.signIn('merchant@example.com', 'password123')
+    it('starts with no session when there is no cookie', async () => {
+      const { result } = await renderSession(null)
+      expect(result.current.session).toBeNull()
     })
 
-    expect(mockApi.login).toHaveBeenCalledWith('merchant@example.com', 'password123')
-    expect(loginRes).toEqual({
-      token: 'tok-legacy',
-      user_id: 'u-legacy',
-      merchant_id: 'm-legacy',
+    it('restores the session from the cookie on mount', async () => {
+      const { result } = await renderSession(storedSession)
+      expect(result.current.session).toEqual(storedSession)
     })
-    expect(result.current.session).toEqual({
-      token: 'tok-legacy',
-      userId: 'u-legacy',
-      merchantId: 'm-legacy',
+
+    it('starts with no session when the cookie read fails', async () => {
+      const { result } = await renderSession('error')
+      expect(result.current.session).toBeNull()
     })
-    expect(JSON.parse(window.localStorage.getItem('aframp.session')!)).toEqual({
-      token: 'tok-legacy',
-      userId: 'u-legacy',
-      merchantId: 'm-legacy',
+
+    it('never reads or writes the token in localStorage', async () => {
+      window.localStorage.setItem('aframp.session', JSON.stringify(storedSession))
+      const { result } = await renderSession(null)
+      expect(result.current.session).toBeNull()
     })
   })
 
-  it('signIn OTP challenge does not set session and returns challenge', async () => {
-    mockApi.login.mockResolvedValue({
-      challenge_id: 'ch-123',
-      expires_in_secs: 300,
+  describe('signIn', () => {
+    it('persists the session for a legacy account that gets one directly', async () => {
+      mockApi.login.mockResolvedValue({
+        token: 'tok-legacy',
+        user_id: 'u-legacy',
+        merchant_id: 'm-legacy',
+      } as LoginResult)
+      const { result } = await renderSession()
+
+      await act(async () => {
+        await result.current.signIn('legacy@example.com', 'secret')
+      })
+
+      const expected = { token: 'tok-legacy', userId: 'u-legacy', merchantId: 'm-legacy' }
+      expect(result.current.session).toEqual(expected)
+      const [[, init]] = sessionCalls('POST')
+      expect(JSON.parse(init.body as string)).toEqual(expected)
     })
 
-    const { result } = renderHook(() => useSession(), { wrapper: SessionProvider })
+    it('returns an OTP challenge without creating a session', async () => {
+      const challenge = { challenge_id: 'chal-1', expires_in_secs: 300 } as LoginResult
+      mockApi.login.mockResolvedValue(challenge)
+      const { result } = await renderSession()
 
-    let challengeRes: LoginResult | undefined
-    await act(async () => {
-      challengeRes = await result.current.signIn('merchant@example.com', 'password123')
+      let returned: LoginResult | undefined
+      await act(async () => {
+        returned = await result.current.signIn('user@example.com', 'secret')
+      })
+
+      expect(returned).toEqual(challenge)
+      expect(result.current.session).toBeNull()
+      expect(sessionCalls('POST')).toHaveLength(0)
     })
 
-    expect(challengeRes).toEqual({
-      challenge_id: 'ch-123',
-      expires_in_secs: 300,
-    })
-    expect(result.current.session).toBeNull()
-    expect(window.localStorage.getItem('aframp.session')).toBeNull()
-  })
+    it('propagates a login failure and leaves the session empty', async () => {
+      mockApi.login.mockRejectedValue(new Error('Invalid credentials'))
+      const { result } = await renderSession()
 
-  it('signIn failure propagates error and leaves session null', async () => {
-    mockApi.login.mockRejectedValue(new Error('Invalid credentials'))
-
-    const { result } = renderHook(() => useSession(), { wrapper: SessionProvider })
-
-    await act(async () => {
-      await expect(result.current.signIn('merchant@example.com', 'wrongpassword')).rejects.toThrow(
+      await expect(result.current.signIn('bad@example.com', 'wrong')).rejects.toThrow(
         'Invalid credentials'
       )
+      expect(result.current.session).toBeNull()
     })
 
+    it('keeps the session for this tab when the cookie write fails', async () => {
+      mockApi.login.mockResolvedValue({
+        token: 'tok-2',
+        user_id: 'u-2',
+        merchant_id: null,
+      } as LoginResult)
+      const { result } = await renderSession()
+      fetchMock.mockRejectedValue(new TypeError('offline'))
+
+      await act(async () => {
+        await result.current.signIn('user@example.com', 'secret')
+      })
+
+      expect(result.current.session).toEqual({ token: 'tok-2', userId: 'u-2', merchantId: null })
+    })
+  })
+
+  it('signUp returns the challenge from api.signup', async () => {
+    const challenge = { challenge_id: 'chal-new', expires_in_secs: 600 } as OtpChallengeResponse
+    mockApi.signup.mockResolvedValue(challenge)
+    const { result } = await renderSession()
+
+    let returned: OtpChallengeResponse | undefined
+    await act(async () => {
+      returned = await result.current.signUp('new@example.com', 'pw', 'New Co', '08012345678')
+    })
+
+    expect(mockApi.signup).toHaveBeenCalledWith('new@example.com', 'pw', 'New Co', '08012345678')
+    expect(returned).toEqual(challenge)
     expect(result.current.session).toBeNull()
   })
 
-  it('signUp calls api.signup and returns challenge', async () => {
-    mockApi.signup.mockResolvedValue({
-      challenge_id: 'ch-new',
-      expires_in_secs: 300,
-    })
-
-    const { result } = renderHook(() => useSession(), { wrapper: SessionProvider })
-
-    let signupRes: OtpChallengeResponse | undefined
-    await act(async () => {
-      signupRes = await result.current.signUp(
-        'new@example.com',
-        'password123',
-        'Alice',
-        '+2348012345678'
-      )
-    })
-
-    expect(mockApi.signup).toHaveBeenCalledWith(
-      'new@example.com',
-      'password123',
-      'Alice',
-      '+2348012345678'
-    )
-    expect(signupRes).toEqual({
-      challenge_id: 'ch-new',
-      expires_in_secs: 300,
-    })
-  })
-
-  it('completeOtp verifies code and persists session', async () => {
+  it('completeOtp verifies the code and persists the session', async () => {
     mockApi.verifyOtp.mockResolvedValue({
-      token: 'tok-verified',
-      user_id: 'u-verified',
-      merchant_id: 'm-verified',
+      token: 'tok-otp',
+      user_id: 'u-otp',
+      merchant_id: 'm-otp',
     })
-
-    const { result } = renderHook(() => useSession(), { wrapper: SessionProvider })
+    const { result } = await renderSession()
 
     await act(async () => {
-      await result.current.completeOtp('ch-123', '654321')
+      await result.current.completeOtp('chal-1', '123456')
     })
 
-    expect(mockApi.verifyOtp).toHaveBeenCalledWith('ch-123', '654321')
+    expect(mockApi.verifyOtp).toHaveBeenCalledWith('chal-1', '123456')
     expect(result.current.session).toEqual({
-      token: 'tok-verified',
-      userId: 'u-verified',
-      merchantId: 'm-verified',
+      token: 'tok-otp',
+      userId: 'u-otp',
+      merchantId: 'm-otp',
     })
-    expect(JSON.parse(window.localStorage.getItem('aframp.session')!)).toEqual({
-      token: 'tok-verified',
-      userId: 'u-verified',
-      merchantId: 'm-verified',
+    expect(sessionCalls('POST')).toHaveLength(1)
+  })
+
+  describe('signOut', () => {
+    it('clears the session, logs out on the server and deletes the cookie', async () => {
+      mockApi.logout.mockResolvedValue(undefined as never)
+      const { result } = await renderSession(storedSession)
+
+      act(() => result.current.signOut())
+
+      expect(result.current.session).toBeNull()
+      expect(result.current.me).toBeNull()
+      expect(mockApi.logout).toHaveBeenCalledWith('tok-1')
+      expect(sessionCalls('DELETE')).toHaveLength(1)
+    })
+
+    it('still clears local state when api.logout rejects', async () => {
+      mockApi.logout.mockRejectedValue(new Error('network'))
+      const { result } = await renderSession(storedSession)
+
+      act(() => result.current.signOut())
+
+      expect(result.current.session).toBeNull()
+    })
+
+    it('does not call api.logout without a session', async () => {
+      const { result } = await renderSession(null)
+      act(() => result.current.signOut())
+      expect(mockApi.logout).not.toHaveBeenCalled()
+    })
+
+    it('runs when the 401 handler fires', async () => {
+      mockApi.logout.mockResolvedValue(undefined as never)
+      const { result } = await renderSession(storedSession)
+
+      act(() => unauthorizedCallback?.())
+
+      expect(result.current.session).toBeNull()
+    })
+
+    it('unregisters the 401 handler on unmount', async () => {
+      const { unmount } = await renderSession()
+      unmount()
+      expect(unauthorizedCallback).toBeNull()
     })
   })
 
-  it('signOut clears session, me, localStorage and calls api.logout', () => {
-    mockApi.logout.mockResolvedValue()
-    const initialSession = { token: 'tok-active', userId: 'u-1', merchantId: 'm-1' }
-    window.localStorage.setItem('aframp.session', JSON.stringify(initialSession))
+  describe('refreshMe', () => {
+    it('returns the profile and caches it as `me`', async () => {
+      mockApi.getMe.mockResolvedValue(meData)
+      const { result } = await renderSession(storedSession)
 
-    const { result } = renderHook(() => useSession(), { wrapper: SessionProvider })
+      let outcome: Awaited<ReturnType<typeof result.current.refreshMe>> | undefined
+      await act(async () => {
+        outcome = await result.current.refreshMe()
+      })
 
-    expect(result.current.session).toEqual(initialSession)
-
-    act(() => {
-      result.current.signOut()
+      expect(mockApi.getMe).toHaveBeenCalledWith('tok-1')
+      expect(outcome).toEqual({ success: true, data: meData })
+      expect(result.current.me).toEqual(meData)
     })
 
-    expect(mockApi.logout).toHaveBeenCalledWith('tok-active')
-    expect(result.current.session).toBeNull()
-    expect(result.current.me).toBeNull()
-    expect(window.localStorage.getItem('aframp.session')).toBeNull()
-  })
+    it('reports a network failure without signing out', async () => {
+      mockApi.getMe.mockRejectedValue(Object.assign(new Error('offline'), { status: 0 }))
+      const { result } = await renderSession(storedSession)
 
-  it('signOut handles api.logout rejection gracefully', () => {
-    mockApi.logout.mockRejectedValue(new Error('Logout failed'))
-    const initialSession = { token: 'tok-error', userId: 'u-1', merchantId: 'm-1' }
-    window.localStorage.setItem('aframp.session', JSON.stringify(initialSession))
+      let outcome: Awaited<ReturnType<typeof result.current.refreshMe>> | undefined
+      await act(async () => {
+        outcome = await result.current.refreshMe()
+      })
 
-    const { result } = renderHook(() => useSession(), { wrapper: SessionProvider })
-
-    act(() => {
-      result.current.signOut()
+      expect(outcome).toEqual({ success: false, reason: 'network' })
+      expect(result.current.session).toEqual(storedSession)
     })
 
-    expect(mockApi.logout).toHaveBeenCalledWith('tok-error')
-    expect(result.current.session).toBeNull()
-    expect(window.localStorage.getItem('aframp.session')).toBeNull()
-  })
+    it('rethrows other errors (a 401 is handled by the unauthorized handler)', async () => {
+      mockApi.getMe.mockRejectedValue(Object.assign(new Error('Unauthorized'), { status: 401 }))
+      const { result } = await renderSession(storedSession)
 
-  it('signOut does not call api.logout when session is null', () => {
-    const { result } = renderHook(() => useSession(), { wrapper: SessionProvider })
-
-    act(() => {
-      result.current.signOut()
+      await expect(result.current.refreshMe()).rejects.toThrow('Unauthorized')
     })
 
-    expect(mockApi.logout).not.toHaveBeenCalled()
-    expect(result.current.session).toBeNull()
+    it('throws when called without a session', async () => {
+      const { result } = await renderSession(null)
+      await expect(result.current.refreshMe()).rejects.toThrow('refreshMe called without a session')
+    })
   })
 
-  it('calls signOut when 401 onUnauthorized handler fires', () => {
-    mockApi.logout.mockResolvedValue()
-    const initialSession = { token: 'tok-401', userId: 'u-401', merchantId: null }
-    window.localStorage.setItem('aframp.session', JSON.stringify(initialSession))
-
-    const { result } = renderHook(() => useSession(), { wrapper: SessionProvider })
-
-    expect(result.current.session).toEqual(initialSession)
-    expect(unauthorizedCallback).not.toBeNull()
-
-    act(() => {
-      unauthorizedCallback?.()
+  describe('hooks', () => {
+    it('useSession throws outside SessionProvider', () => {
+      const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+      expect(() => renderHook(() => useSession())).toThrow(
+        'useSession must be used inside <SessionProvider>'
+      )
+      spy.mockRestore()
     })
 
-    expect(result.current.session).toBeNull()
-    expect(window.localStorage.getItem('aframp.session')).toBeNull()
-  })
-
-  it('cleans up onUnauthorized handler when unmounted', () => {
-    const { unmount } = renderHook(() => useSession(), { wrapper: SessionProvider })
-
-    unmount()
-
-    expect(setUnauthorizedHandler).toHaveBeenLastCalledWith(null)
-  })
-
-  it('session still works for tab when localStorage.setItem throws', async () => {
-    const setItemSpy = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new Error('QuotaExceededError')
+    it('useAuthenticatedSession throws without a session', () => {
+      mockSessionRoute(null)
+      const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+      function Probe() {
+        useAuthenticatedSession()
+        return null
+      }
+      expect(() =>
+        render(
+          <SessionProvider>
+            <Probe />
+          </SessionProvider>
+        )
+      ).toThrow('This screen requires a signed-in merchant')
+      spy.mockRestore()
     })
 
-    mockApi.login.mockResolvedValue({
-      token: 'tok-quota',
-      user_id: 'u-quota',
-      merchant_id: 'm-quota',
+    it('useAuthenticatedSession returns the restored session', async () => {
+      mockSessionRoute(storedSession)
+      function Probe() {
+        const { ready, session } = useSession()
+        if (!ready || !session) return <span>loading</span>
+        return <Authed />
+      }
+      function Authed() {
+        const session = useAuthenticatedSession()
+        return <span data-testid="token">{session.token}</span>
+      }
+      render(
+        <SessionProvider>
+          <Probe />
+        </SessionProvider>
+      )
+      expect(await screen.findByTestId('token')).toHaveTextContent('tok-1')
     })
-
-    const { result } = renderHook(() => useSession(), { wrapper: SessionProvider })
-
-    await act(async () => {
-      await result.current.signIn('user@test.com', 'password')
-    })
-
-    expect(result.current.session).toEqual({
-      token: 'tok-quota',
-      userId: 'u-quota',
-      merchantId: 'm-quota',
-    })
-
-    setItemSpy.mockRestore()
-  })
-
-  it('useSession throws error when used outside SessionProvider', () => {
-    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
-
-    expect(() => renderHook(() => useSession())).toThrow(
-      'useSession must be used inside <SessionProvider>'
-    )
-
-    spy.mockRestore()
-  })
-
-  it('ready flag: false before localStorage is read, true after', async () => {
-    const readyStates: boolean[] = []
-
-    function ReadyObserver() {
-      const { ready } = useSession()
-      readyStates.push(ready)
-      return null
-    }
-
-    render(
-      <SessionProvider>
-        <ReadyObserver />
-      </SessionProvider>
-    )
-
-    await waitFor(() => {
-      expect(readyStates).toContain(true)
-    })
-    expect(readyStates[0]).toBe(false)
-  })
-
-  it('useAuthenticatedSession throws error when session is null', () => {
-    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
-
-    expect(() => renderHook(() => useAuthenticatedSession(), { wrapper: SessionProvider })).toThrow(
-      'This screen requires a signed-in merchant'
-    )
-
-    spy.mockRestore()
-  })
-
-  it('useAuthenticatedSession returns session when authenticated', async () => {
-    const initialSession = { token: 'tok-auth', userId: 'u-auth', merchantId: null }
-    window.localStorage.setItem('aframp.session', JSON.stringify(initialSession))
-
-    function Consumer() {
-      const { ready, session } = useSession()
-      if (!ready || !session) return null
-      return <AuthenticatedChild />
-    }
-
-    function AuthenticatedChild() {
-      const session = useAuthenticatedSession()
-      return <div data-testid="token">{session.token}</div>
-    }
-
-    render(
-      <SessionProvider>
-        <Consumer />
-      </SessionProvider>
-    )
-
-    const tokenElement = await screen.findByTestId('token')
-    expect(tokenElement.textContent).toBe('tok-auth')
   })
 })

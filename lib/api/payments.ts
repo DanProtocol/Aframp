@@ -93,12 +93,12 @@ export interface ApiKey {
   revoked_at: string | null
 }
 
-export function createWallet(token: string): Promise<Wallet> {
-  return request<Wallet>('/wallet/create', { method: 'POST', body: {}, token })
+export function createWallet(token: string, signal?: AbortSignal): Promise<Wallet> {
+  return request<Wallet>('/wallet/create', { method: 'POST', body: {}, token, signal })
 }
 
-export function getWallet(token: string): Promise<Wallet> {
-  return request<Wallet>('/wallet', { token })
+export function getWallet(token: string, signal?: AbortSignal): Promise<Wallet> {
+  return request<Wallet>('/wallet', { token, signal })
 }
 
 export function getBalances(token: string, signal?: AbortSignal): Promise<Balance[]> {

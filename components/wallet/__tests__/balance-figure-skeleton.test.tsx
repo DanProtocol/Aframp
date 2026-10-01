@@ -5,7 +5,7 @@ import { BalanceFigureSkeleton } from '../balance-figure-skeleton'
 describe('BalanceFigureSkeleton', () => {
   it('renders large skeleton by default', () => {
     const { container } = render(<BalanceFigureSkeleton />)
-    
+
     const skeleton = container.querySelector('.h-10')
     expect(skeleton).toBeInTheDocument()
     expect(skeleton).toHaveClass('w-48')
@@ -13,7 +13,7 @@ describe('BalanceFigureSkeleton', () => {
 
   it('renders small skeleton when size is sm', () => {
     const { container } = render(<BalanceFigureSkeleton size="sm" />)
-    
+
     const skeleton = container.querySelector('.h-7')
     expect(skeleton).toBeInTheDocument()
     expect(skeleton).toHaveClass('w-32')
@@ -21,7 +21,7 @@ describe('BalanceFigureSkeleton', () => {
 
   it('renders large skeleton when size is lg', () => {
     const { container } = render(<BalanceFigureSkeleton size="lg" />)
-    
+
     const skeleton = container.querySelector('.h-10')
     expect(skeleton).toBeInTheDocument()
     expect(skeleton).toHaveClass('w-48')

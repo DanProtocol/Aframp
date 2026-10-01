@@ -29,6 +29,7 @@ This document summarizes the implementation of four frontend enhancement issues.
    - `components/wallet/home-page-skeleton.stories.tsx` - Visual documentation of all skeleton states
 
 ### Benefits:
+
 - No layout shift during loading
 - Improved perceived performance
 - Better UX consistency
@@ -57,6 +58,7 @@ This document summarizes the implementation of four frontend enhancement issues.
    - ✅ Snapshot test for populated state
 
 ### Benefits:
+
 - Prevents regressions in merchant home page experience
 - Validates open payment request display logic
 - Ensures navigation paths are correct
@@ -101,6 +103,7 @@ This document summarizes the implementation of four frontend enhancement issues.
    - ✅ handleRecipientSelect pre-fills input from RecentRecipients
 
 ### Benefits:
+
 - Comprehensive coverage of multi-step send flow
 - Validates complex numpad input handling
 - Ensures QR scanner integration works
@@ -122,6 +125,7 @@ This document summarizes the implementation of four frontend enhancement issues.
    - Returns `{ data, error, loading, reload }`
 
 2. **Hook API:**
+
    ```typescript
    const { data, error, loading, reload } = useDataLoader(
      async (signal) => api.getBalances(token, signal),
@@ -134,7 +138,7 @@ This document summarizes the implementation of four frontend enhancement issues.
      - Replaced manual useState/useEffect pattern
      - Now uses `useDataLoader<DashboardData>`
      - Reduced boilerplate by ~30 lines
-   
+
    - **WithdrawPage (`app/(app)/withdraw/page.tsx`):**
      - Replaced manual useState/useEffect pattern
      - Now uses `useDataLoader<WithdrawData>`
@@ -146,6 +150,7 @@ This document summarizes the implementation of four frontend enhancement issues.
    - 8 comprehensive test cases
 
 ### Benefits:
+
 - DRY principle - eliminates duplicate fetch+abort pattern
 - Consistent abort cleanup everywhere
 - Easier to add new data-loading pages
@@ -157,15 +162,18 @@ This document summarizes the implementation of four frontend enhancement issues.
 ## Files Created (14 new files)
 
 ### Hooks:
+
 1. `hooks/use-data-loader.ts`
 2. `hooks/__tests__/use-data-loader.test.ts`
 
 ### Skeleton Components:
+
 3. `components/wallet/balance-figure-skeleton.tsx`
 4. `components/wallet/activity-highlights-skeleton.tsx`
 5. `components/wallet/home-page-skeleton.tsx`
 
 ### Tests:
+
 6. `components/wallet/__tests__/quick-convert.test.tsx`
 7. `components/wallet/__tests__/balance-figure-skeleton.test.tsx`
 8. `components/wallet/__tests__/activity-highlights-skeleton.test.tsx`
@@ -173,9 +181,11 @@ This document summarizes the implementation of four frontend enhancement issues.
 10. `components/send/__tests__/send-page-client-full.test.tsx`
 
 ### Storybook:
+
 11. `components/wallet/home-page-skeleton.stories.tsx`
 
 ### Documentation:
+
 12. `IMPLEMENTATION_SUMMARY.md`
 
 ## Files Modified (2 files)
@@ -188,11 +198,13 @@ This document summarizes the implementation of four frontend enhancement issues.
 ## Testing
 
 All new code includes comprehensive tests:
+
 - **Unit tests:** Hook behavior, component rendering, snapshot tests
 - **Integration tests:** Multi-step flows, navigation, validation
 - **Visual regression:** Storybook stories for skeleton states
 
 To run tests:
+
 ```bash
 # Run all new tests
 npm test -- --testPathPattern="use-data-loader|quick-convert|send-page-client-full|skeleton"
@@ -222,13 +234,17 @@ npm run storybook
 ## Notes
 
 ### Branch Requirement
+
 ⚠️ **All contributions for these issues must be made on the `dev-frontend` branch** per CONTRIBUTING.md
 
 ### Breaking Changes
+
 None - all changes are backwards compatible
 
 ### Dependencies
+
 No new dependencies added - uses existing:
+
 - `framer-motion` (for Skeleton animation)
 - `@testing-library/react` (for tests)
 - `@storybook/react` (for stories)

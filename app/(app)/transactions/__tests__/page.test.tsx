@@ -1,8 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
 import TransactionsPage from '../page'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 
 jest.mock('@/lib/api', () => ({
   api: {
@@ -129,5 +129,109 @@ describe('TransactionsPage', () => {
     await waitFor(() =>
       expect(screen.getByText(/Refund requested successfully/i)).toBeInTheDocument()
     )
+  })
+})
+
+describe('TransactionsPage filters, refunds list and errors', () => {
+  const confirmed = payment({
+    id: 'p-confirmed',
+    amount_stroops: 10_000_000n,
+    tx_hash: 'hash-confirmed',
+  })
+  const failed = payment({
+    id: 'p-failed',
+    status: 'failed',
+    amount_stroops: 20_000_000n,
+    tx_hash: 'hash-failed',
+    wallet_address: 'GFAILEDWALLET',
+  })
+
+  it('filters the list by status', async () => {
+    mockListTransactions.mockResolvedValue([confirmed, failed])
+    render(<TransactionsPage />)
+
+    expect(await screen.findByText('2 XLM')).toBeInTheDocument()
+    expect(screen.getByText('1 XLM')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'failed' } })
+
+    expect(screen.getByText('2 XLM')).toBeInTheDocument()
+    expect(screen.queryByText('1 XLM')).not.toBeInTheDocument()
+  })
+
+  it('filters the list by search text after the debounce', async () => {
+    mockListTransactions.mockResolvedValue([confirmed, failed])
+    const user = userEvent.setup()
+    render(<TransactionsPage />)
+    await screen.findByText('2 XLM')
+
+    await user.type(screen.getByLabelText('Search'), 'GFAILED')
+
+    await waitFor(() => expect(screen.queryByText('1 XLM')).not.toBeInTheDocument())
+    expect(screen.getByText('2 XLM')).toBeInTheDocument()
+  })
+
+  it('filters the list by date range', async () => {
+    mockListTransactions.mockResolvedValue([confirmed, failed])
+    render(<TransactionsPage />)
+    await screen.findByText('2 XLM')
+
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2999-01-01' } })
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2999-12-31' } })
+
+    expect(screen.queryByText('1 XLM')).not.toBeInTheDocument()
+    expect(screen.queryByText('2 XLM')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['abc', 'GRECIPIENT', 'Enter a valid refund amount.'],
+    ['5', 'GRECIPIENT', 'Refund amount cannot exceed the original payment amount.'],
+    ['0.5', '   ', 'Recipient address is required.'],
+  ])('rejects a refund of %p to %p', async (amount, recipient, message) => {
+    const user = userEvent.setup()
+    render(<TransactionsPage />)
+
+    await user.click(await screen.findByRole('button', { name: 'Refund' }))
+    await user.clear(screen.getByLabelText('Refund amount'))
+    await user.type(screen.getByLabelText('Refund amount'), amount)
+    await user.clear(screen.getByLabelText('Recipient address'))
+    await user.type(screen.getByLabelText('Recipient address'), recipient)
+    await user.click(screen.getByRole('button', { name: 'Confirm refund' }))
+
+    expect(await screen.findByText(message)).toBeInTheDocument()
+    expect(mockCreateRefund).not.toHaveBeenCalled()
+  })
+
+  it('lists existing refunds', async () => {
+    mockListRefunds.mockResolvedValue([
+      {
+        id: 'refund-9',
+        payment_id: 'payment-1',
+        merchant_id: 'merchant-1',
+        amount_stroops: 30_000_000n,
+        asset: 'XLM',
+        status: 'completed',
+        recipient: 'GRECIPIENT',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ])
+    render(<TransactionsPage />)
+
+    expect(await screen.findByText('3 XLM')).toBeInTheDocument()
+    expect(screen.getByLabelText('Refund status: completed')).toBeInTheDocument()
+    expect(screen.queryByText('No refunds yet.')).not.toBeInTheDocument()
+  })
+
+  it('shows the offline message when the backend is unreachable', async () => {
+    mockListTransactions.mockRejectedValue(new ApiError('offline', 0))
+    render(<TransactionsPage />)
+    expect(await screen.findByText(/can't connect to the payment server/i)).toBeInTheDocument()
+  })
+
+  it('shows other load errors as-is', async () => {
+    mockListTransactions.mockRejectedValue(new Error('boom'))
+    render(<TransactionsPage />)
+    expect(await screen.findByText('boom')).toBeInTheDocument()
   })
 })

@@ -3,6 +3,7 @@
 ## Before vs After
 
 ### Before: Manual Pattern (Repetitive)
+
 ```typescript
 // HomePage, WithdrawPage, and others all had this:
 const [data, setData] = useState(null)
@@ -29,6 +30,7 @@ if (!data) return <LoadingSpinner /> // ❌ Layout shift
 ```
 
 ### After: useDataLoader Hook (DRY)
+
 ```typescript
 const { data, error, loading, reload } = useDataLoader(
   async (signal) => api.getData(token, signal),
@@ -170,22 +172,26 @@ Back to loading state
 ## Benefits Summary
 
 ### Code Quality
+
 - **-100 lines**: Removed duplicate fetch logic
 - **+1,100 lines**: Added comprehensive tests
 - **DRY**: Single source of truth for data loading
 
 ### Performance
+
 - **No layout shift**: Skeleton matches actual content
 - **Proper cleanup**: AbortController prevents memory leaks
 - **Optimized**: Parallel data fetching with Promise.all
 
 ### Developer Experience
+
 - **Reusable**: useDataLoader works for any async data
 - **Type-safe**: Generic type parameter <T>
 - **Testable**: Hook can be tested in isolation
 - **Consistent**: Same pattern across all pages
 
 ### User Experience
+
 - **Faster perceived load**: Skeleton shows immediately
 - **Professional feel**: Smooth transitions
 - **Clear feedback**: Error states with retry

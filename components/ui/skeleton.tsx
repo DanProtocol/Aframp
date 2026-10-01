@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 export function Skeleton({ className }: { className?: string }) {
   return (
     <motion.div
+      data-slot="skeleton"
       initial={{ opacity: 0.75 }}
       animate={{ opacity: [0.75, 0.35, 0.75] }}
       transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}

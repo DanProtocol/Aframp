@@ -84,10 +84,9 @@ describe('useDataLoader', () => {
 
   it('reloads data when deps change', async () => {
     const fetcher = jest.fn().mockResolvedValue({ data: 'initial' })
-    const { result, rerender } = renderHook(
-      ({ dep }) => useDataLoader(fetcher, [dep]),
-      { initialProps: { dep: 'value1' } }
-    )
+    const { result, rerender } = renderHook(({ dep }) => useDataLoader(fetcher, [dep]), {
+      initialProps: { dep: 'value1' },
+    })
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false)
@@ -103,7 +102,8 @@ describe('useDataLoader', () => {
   })
 
   it('reload function triggers a new fetch', async () => {
-    const fetcher = jest.fn()
+    const fetcher = jest
+      .fn()
       .mockResolvedValueOnce({ data: 'first' })
       .mockResolvedValueOnce({ data: 'second' })
 

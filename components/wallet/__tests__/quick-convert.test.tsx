@@ -7,13 +7,15 @@ function mockRequest(overrides: Partial<PaymentRequest> = {}): PaymentRequest {
   return {
     id: 'req1',
     merchant_id: 'm1',
+    address: 'GTEST123',
+    network: 'stellar',
     amount_stroops: 1000000000n,
     asset: 'XLM',
     status: 'pending',
-    memo: null,
+    memo: 'memo',
     created_at: new Date().toISOString(),
     expires_at: new Date(Date.now() + 3600000).toISOString(),
-    paid_at: null,
+    sep7_uri: null,
     ...overrides,
   }
 }
@@ -21,20 +23,20 @@ function mockRequest(overrides: Partial<PaymentRequest> = {}): PaymentRequest {
 describe('QuickConvert', () => {
   it('renders no open requests state when openRequests is empty', () => {
     render(<QuickConvert openRequests={[]} />)
-    
+
     expect(screen.getByText('Waiting to be paid')).toBeInTheDocument()
     expect(screen.getByText('No open charges right now.')).toBeInTheDocument()
   })
 
   it('renders the correct count badge when requests exist', () => {
     const requests = [
-      mockRequest({ id: 'req1', amount_stroops: 500000000n }),
-      mockRequest({ id: 'req2', amount_stroops: 750000000n }),
-      mockRequest({ id: 'req3', amount_stroops: 1000000000n }),
+      mockRequest({ id: 'req1', amount_stroops: 50000000n }),
+      mockRequest({ id: 'req2', amount_stroops: 75000000n }),
+      mockRequest({ id: 'req3', amount_stroops: 100000000n }),
     ]
 
     render(<QuickConvert openRequests={requests} />)
-    
+
     expect(screen.queryByText('No open charges right now.')).not.toBeInTheDocument()
     expect(screen.getByText('5 XLM')).toBeInTheDocument()
     expect(screen.getByText('7.5 XLM')).toBeInTheDocument()
@@ -47,7 +49,7 @@ describe('QuickConvert', () => {
     )
 
     render(<QuickConvert openRequests={requests} />)
-    
+
     // Should only render 5 list items
     const listItems = screen.getAllByRole('link')
     expect(listItems).toHaveLength(6) // 5 requests + 1 "New charge" button
@@ -60,18 +62,18 @@ describe('QuickConvert', () => {
     ]
 
     render(<QuickConvert openRequests={requests} />)
-    
-    const requestLinks = screen.getAllByRole('link').filter(link => 
-      link.getAttribute('href')?.includes('/request/')
-    )
-    
+
+    const requestLinks = screen
+      .getAllByRole('link')
+      .filter((link) => link.getAttribute('href')?.includes('/request/'))
+
     expect(requestLinks[0]).toHaveAttribute('href', '/request/req-123')
     expect(requestLinks[1]).toHaveAttribute('href', '/request/req-456')
   })
 
   it('New charge button links to /charge', () => {
     render(<QuickConvert openRequests={[]} />)
-    
+
     const chargeButton = screen.getByRole('link', { name: /new charge/i })
     expect(chargeButton).toHaveAttribute('href', '/charge')
   })

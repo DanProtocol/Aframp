@@ -55,8 +55,17 @@ export function isOffline(cause: unknown): boolean {
   return cause instanceof ApiError && cause.status === 0
 }
 
+const BIGINT_KEYS_PATTERN = Array.from(BIGINT_KEYS).join('|')
+
+/**
+ * Re-quotes large integer values before JSON.parse can round them, then revives
+ * BIGINT_KEYS fields as bigint. The field-name pattern is derived from BIGINT_KEYS.
+ */
 export function parseWithBigInts<T>(text: string): T {
-  const quoted = text.replace(/"(amount_stroops|available|pending)"\s*:\s*(-?\d+)/g, '"$1":"$2"')
+  const quoted = text.replace(
+    new RegExp(`"(${BIGINT_KEYS_PATTERN})"\\s*:\\s*(-?\\d+)`, 'g'),
+    '"$1":"$2"'
+  )
   return JSON.parse(quoted, (key, value) =>
     BIGINT_KEYS.has(key) && typeof value === 'string' ? BigInt(value) : value
   ) as T

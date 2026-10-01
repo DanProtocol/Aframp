@@ -330,8 +330,8 @@ Use [`Alert`](components/ui/alert.tsx) with `variant="destructive"` for errors t
 
 ### Quick reference
 
-| Situation | Component |
-| --- | --- |
+| Situation                                | Component                     |
+| ---------------------------------------- | ----------------------------- |
 | Page-level fetch failed, nothing to show | `ErrorState` (with `onRetry`) |
 | Form validation / submit / action failed | `Alert variant="destructive"` |
 
@@ -343,7 +343,7 @@ When adding a new page, follow this convention rather than choosing arbitrarily.
 
 ### Backend BigInt Fields
 
-Every backend wire field carrying a large integer must be added to `BIGINT_KEYS` in [lib/api.ts](lib/api.ts) and to the field-name alternatives in `parseWithBigInts`' pre-parse regex. Both are required to avoid precision loss in `JSON.parse`. Add or update coverage in [lib/__tests__/api.test.ts](lib/__tests__/api.test.ts).
+Every backend wire field carrying a large integer must be added to `BIGINT_KEYS` in [lib/api.ts](lib/api.ts) and to the field-name alternatives in `parseWithBigInts`' pre-parse regex. Both are required to avoid precision loss in `JSON.parse`. Add or update coverage in [lib/**tests**/api.test.ts](lib/__tests__/api.test.ts).
 
 ### Writing Tests
 

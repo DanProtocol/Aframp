@@ -25,7 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { api, ApiError, type Balance, type Me, type Withdrawal, type WithdrawalStatus } from '@/lib/api'
+import {
+  api,
+  ApiError,
+  type Balance,
+  type Me,
+  type Withdrawal,
+  type WithdrawalStatus,
+} from '@/lib/api'
 import { formatStroops, isWholeKobo, parseAmountToStroops } from '@/lib/money'
 import { useAuthenticatedSession } from '@/components/session-provider'
 import {
@@ -226,7 +233,8 @@ export default function WithdrawPage() {
     }
   }
 
-  if (!balances || !me) {
+  // A failed load leaves `me` null; fall through so the error below is shown.
+  if (!balances || (!me && !error)) {
     return (
       <div className="flex justify-center py-16">
         <LoadingSpinner />
@@ -234,7 +242,7 @@ export default function WithdrawPage() {
     )
   }
 
-  if (me.kyc_status !== 'approved') {
+  if (me && me.kyc_status !== 'approved') {
     return (
       <div>
         <header>
@@ -395,10 +403,7 @@ export default function WithdrawPage() {
             )}
             <AlertDialogFooter>
               <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                disabled={submitting}
-                onClick={() => void confirmWithdrawal()}
-              >
+              <AlertDialogAction disabled={submitting} onClick={() => void confirmWithdrawal()}>
                 {submitting ? 'Sending…' : 'Confirm cash out'}
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -418,7 +423,7 @@ export default function WithdrawPage() {
                 >
                   <div>
                     <p className="font-medium">
-                      {formatStroops(withdrawal.amount)} {withdrawal.asset}
+                      {formatStroops(withdrawal.amount_stroops)} {withdrawal.asset}
                     </p>
                     <p className="text-dim text-xs">
                       {new Date(withdrawal.created_at).toLocaleString()}

@@ -1,23 +1,74 @@
-import { render, screen, waitFor, act } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import RequestPage from '../page'
+import { Suspense } from 'react'
+import { act, render, screen } from '@testing-library/react'
+import PaymentRequestPage from '../page'
+import { api, ApiError, type PaymentRequest } from '@/lib/api'
 
 const POLL_INTERVAL_MS = 3000
 
-const loadMock = jest.fn()
-
-jest.mock('../../../../lib/paymentRequest', () => ({
-  load: (...args: unknown[]) => loadMock(...args),
+jest.mock('@/lib/api', () => ({
+  api: {
+    getPaymentRequest: jest.fn(),
+  },
+  ApiError: class extends Error {
+    constructor(
+      message: string,
+      public status: number
+    ) {
+      super(message)
+      this.name = 'ApiError'
+    }
+  },
 }))
 
-jest.mock('next/navigation', () => ({
-  useParams: () => ({ id: 'req_123' }),
+jest.mock('react-qr-code', () => ({
+  __esModule: true,
+  default: ({ value }: { value: string }) => <div data-testid="qr-code">{value}</div>,
 }))
 
-describe('RequestPage polling', () => {
+const mockGetPaymentRequest = api.getPaymentRequest as jest.Mock
+
+function pendingRequest(overrides: Partial<PaymentRequest> = {}): PaymentRequest {
+  return {
+    id: 'req_123',
+    merchant_id: 'merchant-1',
+    address: 'GTEST123',
+    network: 'stellar',
+    amount_stroops: 25000000n,
+    asset: 'XLM',
+    memo: 'memo',
+    status: 'pending',
+    expires_at: new Date(Date.now() + 600_000).toISOString(),
+    created_at: new Date().toISOString(),
+    sep7_uri: 'web+stellar:pay?destination=GTEST123&amount=2.5',
+    ...overrides,
+  }
+}
+
+const networkError = () => new ApiError('offline', 0)
+
+/** The page unwraps `params` with React's use(), which suspends on first render. */
+async function renderPage() {
+  await act(async () => {
+    render(
+      <Suspense fallback={null}>
+        <PaymentRequestPage params={Promise.resolve({ id: 'req_123' })} />
+      </Suspense>
+    )
+    await Promise.resolve()
+  })
+}
+
+async function advance(ms: number) {
+  await act(async () => {
+    jest.advanceTimersByTime(ms)
+    await Promise.resolve()
+  })
+}
+
+describe('PaymentRequestPage polling', () => {
   beforeEach(() => {
     jest.useFakeTimers()
-    loadMock.mockReset()
+    mockGetPaymentRequest.mockReset()
   })
 
   afterEach(() => {
@@ -25,90 +76,50 @@ describe('RequestPage polling', () => {
   })
 
   it('stops polling after 3 consecutive network errors and shows a retry button', async () => {
-    loadMock.mockResolvedValue(null)
+    mockGetPaymentRequest.mockRejectedValue(networkError())
 
-    render(<RequestPage />)
+    await renderPage()
+    await advance(POLL_INTERVAL_MS)
+    await advance(POLL_INTERVAL_MS)
 
-    // Initial load fails.
-    await act(async () => {
-      await Promise.resolve()
-    })
+    expect(mockGetPaymentRequest).toHaveBeenCalledTimes(3)
 
-    // Two more scheduled polls fail, reaching the 3-error threshold.
-    await act(async () => {
-      jest.advanceTimersByTime(POLL_INTERVAL_MS)
-      await Promise.resolve()
-    })
-    await act(async () => {
-      jest.advanceTimersByTime(POLL_INTERVAL_MS)
-      await Promise.resolve()
-    })
+    // Polling has stopped: no further calls even after more intervals.
+    await advance(POLL_INTERVAL_MS * 5)
+    expect(mockGetPaymentRequest).toHaveBeenCalledTimes(3)
 
-    expect(loadMock).toHaveBeenCalledTimes(3)
-
-    // Polling must have stopped: no further calls even after more intervals.
-    await act(async () => {
-      jest.advanceTimersByTime(POLL_INTERVAL_MS * 5)
-      await Promise.resolve()
-    })
-    expect(loadMock).toHaveBeenCalledTimes(3)
-
-    expect(await screen.findByRole('button', { name: /retry/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /try again|retry/i })).toBeInTheDocument()
   })
 
   it('resets the error counter after a successful load', async () => {
-    loadMock
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ status: 'pending' })
-      .mockResolvedValue(null)
+    mockGetPaymentRequest
+      .mockRejectedValueOnce(networkError())
+      .mockRejectedValueOnce(networkError())
+      .mockResolvedValueOnce(pendingRequest())
+      .mockRejectedValueOnce(networkError())
+      .mockRejectedValueOnce(networkError())
+      .mockResolvedValue(pendingRequest())
 
-    render(<RequestPage />)
+    await renderPage()
+    for (let i = 0; i < 5; i++) await advance(POLL_INTERVAL_MS)
 
-    await act(async () => {
-      await Promise.resolve()
-    })
-    await act(async () => {
-      jest.advanceTimersByTime(POLL_INTERVAL_MS)
-      await Promise.resolve()
-    })
-    // Successful load resets the counter.
-    await act(async () => {
-      jest.advanceTimersByTime(POLL_INTERVAL_MS)
-      await Promise.resolve()
-    })
-
-    // A single subsequent failure must not stop polling.
-    await act(async () => {
-      jest.advanceTimersByTime(POLL_INTERVAL_MS)
-      await Promise.resolve()
-    })
-
-    expect(loadMock).toHaveBeenCalledTimes(4)
-    expect(screen.queryByRole('button', { name: /retry/i })).not.toBeInTheDocument()
+    // Two failures, a success, two more failures, then success: never three in a row,
+    // so polling is still running.
+    expect(mockGetPaymentRequest).toHaveBeenCalledTimes(6)
+    await advance(POLL_INTERVAL_MS)
+    expect(mockGetPaymentRequest).toHaveBeenCalledTimes(7)
   })
 
   it('stops polling once the request is paid', async () => {
-    loadMock
-      .mockResolvedValueOnce({ status: 'pending' })
-      .mockResolvedValueOnce({ status: 'paid' })
+    mockGetPaymentRequest
+      .mockResolvedValueOnce(pendingRequest())
+      .mockResolvedValue(pendingRequest({ status: 'paid' }))
 
-    render(<RequestPage />)
+    await renderPage()
+    await advance(POLL_INTERVAL_MS)
+    expect(mockGetPaymentRequest).toHaveBeenCalledTimes(2)
 
-    await act(async () => {
-      await Promise.resolve()
-    })
-    await act(async () => {
-      jest.advanceTimersByTime(POLL_INTERVAL_MS)
-      await Promise.resolve()
-    })
-
-    await act(async () => {
-      jest.advanceTimersByTime(POLL_INTERVAL_MS * 5)
-      await Promise.resolve()
-    })
-
-    expect(loadMock).toHaveBeenCalledTimes(2)
-    await waitFor(() => expect(screen.queryByRole('button', { name: /retry/i })).not.toBeInTheDocument())
+    await advance(POLL_INTERVAL_MS * 5)
+    expect(mockGetPaymentRequest).toHaveBeenCalledTimes(2)
   })
 })

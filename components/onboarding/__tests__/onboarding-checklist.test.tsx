@@ -14,7 +14,6 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { OnboardingChecklist } from '../onboarding-checklist'
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
@@ -22,7 +21,9 @@ import { OnboardingChecklist } from '../onboarding-checklist'
 const CHECKLIST_KEY = 'aframp-merchant-checklist'
 const WALLET_SESSION_KEY = 'walletAddress' // sessionStorage key used by walletSession
 
-function setChecklist(overrides: Partial<Record<'wallet' | 'charge' | 'payment' | 'cashout', boolean>>) {
+function setChecklist(
+  overrides: Partial<Record<'wallet' | 'charge' | 'payment' | 'cashout', boolean>>
+) {
   const base = { wallet: false, charge: false, payment: false, cashout: false }
   window.localStorage.setItem(CHECKLIST_KEY, JSON.stringify({ ...base, ...overrides }))
 }
@@ -142,17 +143,26 @@ describe('step completed/pending state', () => {
 describe('step link hrefs', () => {
   it('wallet step links to /wallet-setup', () => {
     render(<OnboardingChecklist />)
-    expect(screen.getByRole('link', { name: /create wallet/i })).toHaveAttribute('href', '/wallet-setup')
+    expect(screen.getByRole('link', { name: /create wallet/i })).toHaveAttribute(
+      'href',
+      '/wallet-setup'
+    )
   })
 
   it('charge step links to /bills', () => {
     render(<OnboardingChecklist />)
-    expect(screen.getByRole('link', { name: /create first charge/i })).toHaveAttribute('href', '/bills')
+    expect(screen.getByRole('link', { name: /create first charge/i })).toHaveAttribute(
+      'href',
+      '/bills'
+    )
   })
 
   it('payment step links to /receive', () => {
     render(<OnboardingChecklist />)
-    expect(screen.getByRole('link', { name: /receive first payment/i })).toHaveAttribute('href', '/receive')
+    expect(screen.getByRole('link', { name: /receive first payment/i })).toHaveAttribute(
+      'href',
+      '/receive'
+    )
   })
 
   it('cashout step links to /offramp', () => {

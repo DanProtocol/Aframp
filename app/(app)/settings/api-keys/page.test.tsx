@@ -14,6 +14,14 @@ jest.mock('@/lib/api', () => ({
     createApiKey: jest.fn(),
     revokeApiKey: jest.fn(),
   },
+  ApiError: class ApiError extends Error {
+    constructor(
+      message: string,
+      public status: number
+    ) {
+      super(message)
+    }
+  },
 }))
 
 describe('ApiKeysPage - One-time key reveal', () => {
@@ -137,10 +145,11 @@ describe('ApiKeysPage - One-time key reveal', () => {
     })
 
     // Mock clipboard API
-    Object.assign(navigator, {
-      clipboard: {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
         writeText: jest.fn().mockResolvedValue(undefined),
       },
+      configurable: true,
     })
 
     render(<ApiKeysPage />)
@@ -188,11 +197,100 @@ describe('ApiKeysPage - One-time key reveal', () => {
     })
 
     // Verify warning messages are present
-    expect(
-      screen.getByText(/this is the only time you'll see the full key/i)
-    ).toBeInTheDocument()
+    expect(screen.getByText(/this is the only time you'll see the full key/i)).toBeInTheDocument()
     expect(
       screen.getByText(/once you close this dialog, the key will never be shown again/i)
     ).toBeInTheDocument()
+  })
+})
+
+describe('ApiKeysPage - listing, revoking and errors', () => {
+  const recent = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const key = (overrides: Record<string, unknown> = {}) => ({
+    id: 'key-1',
+    merchant_id: 'm-1',
+    name: 'Production server',
+    key_preview: 'ak_live_••••1234',
+    created_at: '2026-01-01T00:00:00Z',
+    last_used_at: recent,
+    revoked_at: null,
+    ...overrides,
+  })
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    ;(useAuthenticatedSession as jest.Mock).mockReturnValue({ token: 'test-token' })
+  })
+
+  it('lists keys and flags revoked, never-used and inactive ones', async () => {
+    ;(api.listApiKeys as jest.Mock).mockResolvedValue([
+      key(),
+      key({ id: 'key-2', name: 'Old CI', revoked_at: '2026-02-01T00:00:00Z' }),
+      key({ id: 'key-3', name: 'Unused', last_used_at: null }),
+      key({ id: 'key-4', name: 'Dormant', last_used_at: '2020-01-01T00:00:00Z' }),
+    ])
+    render(<ApiKeysPage />)
+
+    expect(await screen.findByText('Production server')).toBeInTheDocument()
+    expect(screen.getByText('Revoked')).toBeInTheDocument()
+    expect(screen.getByText('Never used')).toBeInTheDocument()
+    expect(screen.getByText('Inactive 90+ days')).toBeInTheDocument()
+    // Revoked keys can't be revoked again.
+    expect(screen.queryByRole('button', { name: 'Revoke Old CI' })).not.toBeInTheDocument()
+  })
+
+  it('revokes a key after confirmation and reloads the list', async () => {
+    const user = userEvent.setup()
+    ;(api.listApiKeys as jest.Mock)
+      .mockResolvedValueOnce([key()])
+      .mockResolvedValue([key({ revoked_at: '2026-03-01T00:00:00Z' })])
+    ;(api.revokeApiKey as jest.Mock).mockResolvedValue(undefined)
+    render(<ApiKeysPage />)
+
+    await user.click(await screen.findByRole('button', { name: 'Revoke Production server' }))
+    await user.click(screen.getByRole('button', { name: 'Revoke key' }))
+
+    await waitFor(() => expect(api.revokeApiKey).toHaveBeenCalledWith('test-token', 'key-1'))
+    expect(await screen.findByText('Revoked')).toBeInTheDocument()
+  })
+
+  it('keeps the list and shows the error when revoking fails', async () => {
+    const user = userEvent.setup()
+    ;(api.listApiKeys as jest.Mock).mockResolvedValue([key()])
+    ;(api.revokeApiKey as jest.Mock).mockRejectedValue(new Error('revoke failed'))
+    render(<ApiKeysPage />)
+
+    await user.click(await screen.findByRole('button', { name: 'Revoke Production server' }))
+    await user.click(screen.getByRole('button', { name: 'Revoke key' }))
+
+    expect(await screen.findByText('revoke failed')).toBeInTheDocument()
+    // The dialog stays open so the user can retry.
+    expect(screen.getByRole('button', { name: 'Revoke key' })).toBeEnabled()
+  })
+
+  it('shows the load error and retries', async () => {
+    const user = userEvent.setup()
+    ;(api.listApiKeys as jest.Mock)
+      .mockRejectedValueOnce(new Error('cannot load'))
+      .mockResolvedValue([key()])
+    render(<ApiKeysPage />)
+
+    expect(await screen.findByText('cannot load')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /try again|retry/i }))
+
+    expect(await screen.findByText('Production server')).toBeInTheDocument()
+  })
+
+  it('shows the error when creating a key fails', async () => {
+    const user = userEvent.setup()
+    ;(api.listApiKeys as jest.Mock).mockResolvedValue([])
+    ;(api.createApiKey as jest.Mock).mockRejectedValue(new Error('create failed'))
+    render(<ApiKeysPage />)
+
+    await user.click(await screen.findByRole('button', { name: /new key/i }))
+    await user.type(screen.getByLabelText('Key name'), 'CI')
+    await user.click(screen.getByRole('button', { name: 'Create key' }))
+
+    expect(await screen.findByText('create failed')).toBeInTheDocument()
   })
 })

@@ -10,8 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useSession } from '@/components/session-provider'
 import { ApiError, isOffline } from '@/lib/api'
-
-export const CHALLENGE_SESSION_KEY = 'aframp.challenge_id'
+import { CHALLENGE_SESSION_KEY } from '@/lib/otp-challenge'
 
 export default function LoginPage() {
   const { session, ready, signIn } = useSession()

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import WalletPage from '../page'
 import { useAuthenticatedSession, useSession } from '@/components/session-provider'
@@ -14,6 +14,14 @@ jest.mock('@/lib/api', () => ({
     getWallet: jest.fn(),
     getBalances: jest.fn(),
     createWallet: jest.fn(),
+  },
+  ApiError: class ApiError extends Error {
+    constructor(
+      message: string,
+      public status: number
+    ) {
+      super(message)
+    }
   },
 }))
 
@@ -59,10 +67,11 @@ describe('WalletPage - Clipboard functionality', () => {
   it('successfully copies address to clipboard', async () => {
     const user = userEvent.setup()
     const mockWriteText = jest.fn().mockResolvedValue(undefined)
-    Object.assign(navigator, {
-      clipboard: {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
         writeText: mockWriteText,
       },
+      configurable: true,
     })
 
     render(<WalletPage />)
@@ -82,10 +91,11 @@ describe('WalletPage - Clipboard functionality', () => {
     const user = userEvent.setup()
     const mockError = new DOMException('Permission denied', 'NotAllowedError')
     const mockWriteText = jest.fn().mockRejectedValue(mockError)
-    Object.assign(navigator, {
-      clipboard: {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
         writeText: mockWriteText,
       },
+      configurable: true,
     })
 
     render(<WalletPage />)
@@ -98,9 +108,7 @@ describe('WalletPage - Clipboard functionality', () => {
     await user.click(copyButton)
 
     expect(
-      await screen.findByText(
-        /Could not copy — please select and copy the address manually/i
-      )
+      await screen.findByText(/Could not copy — please select and copy the address manually/i)
     ).toBeInTheDocument()
 
     expect(consoleErrorSpy).toHaveBeenCalledWith('Clipboard copy failed:', mockError)
@@ -110,10 +118,11 @@ describe('WalletPage - Clipboard functionality', () => {
     const user = userEvent.setup()
     const mockError = new TypeError('navigator.clipboard is undefined')
     const mockWriteText = jest.fn().mockRejectedValue(mockError)
-    Object.assign(navigator, {
-      clipboard: {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
         writeText: mockWriteText,
       },
+      configurable: true,
     })
 
     render(<WalletPage />)
@@ -126,23 +135,21 @@ describe('WalletPage - Clipboard functionality', () => {
     await user.click(copyButton)
 
     expect(
-      await screen.findByText(
-        /Could not copy — please select and copy the address manually/i
-      )
+      await screen.findByText(/Could not copy — please select and copy the address manually/i)
     ).toBeInTheDocument()
 
     expect(consoleErrorSpy).toHaveBeenCalledWith('Clipboard copy failed:', mockError)
   })
 
   it('does not attempt to copy when wallet is not loaded', async () => {
-    const user = userEvent.setup()
     const mockWriteText = jest.fn()
-    Object.assign(navigator, {
-      clipboard: {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
         writeText: mockWriteText,
       },
+      configurable: true,
     })
-    
+
     ;(api.getWallet as jest.Mock).mockRejectedValue(new Error('No wallet'))
 
     render(<WalletPage />)
@@ -161,10 +168,11 @@ describe('WalletPage - Clipboard functionality', () => {
       .mockRejectedValueOnce(new DOMException('Permission denied', 'NotAllowedError'))
       .mockResolvedValueOnce(undefined)
 
-    Object.assign(navigator, {
-      clipboard: {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
         writeText: mockWriteText,
       },
+      configurable: true,
     })
 
     render(<WalletPage />)
@@ -174,7 +182,7 @@ describe('WalletPage - Clipboard functionality', () => {
     })
 
     const copyButton = screen.getByRole('button', { name: /Copy address/i })
-    
+
     // First attempt fails
     await user.click(copyButton)
     expect(
@@ -193,12 +201,13 @@ describe('WalletPage - Clipboard functionality', () => {
 
   it('shows copied state for 2 seconds then reverts', async () => {
     jest.useFakeTimers()
-    const user = userEvent.setup()
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
     const mockWriteText = jest.fn().mockResolvedValue(undefined)
-    Object.assign(navigator, {
-      clipboard: {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
         writeText: mockWriteText,
       },
+      configurable: true,
     })
 
     render(<WalletPage />)
@@ -213,7 +222,9 @@ describe('WalletPage - Clipboard functionality', () => {
     expect(await screen.findByText(/Copied/i)).toBeInTheDocument()
 
     // Fast-forward 2 seconds
-    jest.advanceTimersByTime(2000)
+    act(() => {
+      jest.advanceTimersByTime(2000)
+    })
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Copy address/i })).toBeInTheDocument()

@@ -2,15 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  ArrowLeft,
-  Copy,
-  Check,
-  Camera,
-  AlertCircle,
-  Clock,
-  TriangleAlert,
-} from 'lucide-react'
+import { ArrowLeft, Copy, Check, Camera, AlertCircle, Clock, TriangleAlert } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import { Button } from '@/components/ui/button'
 import { QRScanner } from '@/components/send/qr-scanner'
@@ -157,8 +149,7 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
             </div>
             <h2 className="text-lg font-semibold">Request expired</h2>
             <p className="text-sm text-muted-foreground">
-              This payment request expired on{' '}
-              {new Date(request.expires_at).toLocaleString()}.
+              This payment request expired on {new Date(request.expires_at).toLocaleString()}.
             </p>
           </div>
         </div>
@@ -194,7 +185,9 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
     )
   }
 
-  const qrValue = request.sep7_uri ?? `stellar:${request.address}?amount=${formatStroops(request.amount_stroops)}&asset=${request.asset}&memo=${request.memo}`
+  const qrValue =
+    request.sep7_uri ??
+    `stellar:${request.address}?amount=${formatStroops(request.amount_stroops)}&asset=${request.asset}&memo=${request.memo}`
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center">
@@ -337,10 +330,7 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
 
       {/* ── QR Scanner Modal ── */}
       {scannerOpen && (
-        <QRScanner
-          onScan={handleScanPayment}
-          onClose={() => setScannerOpen(false)}
-        />
+        <QRScanner onScan={handleScanPayment} onClose={() => setScannerOpen(false)} />
       )}
     </div>
   )

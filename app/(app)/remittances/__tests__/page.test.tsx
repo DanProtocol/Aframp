@@ -89,7 +89,9 @@ describe('RemittancesPage', () => {
     ;(api.listRemittances as jest.Mock).mockResolvedValue(remittances)
     render(<RemittancesPage />)
     await waitFor(() => {
-      expect(screen.getByText(/Failure reason: Insufficient funds in destination account/)).toBeInTheDocument()
+      expect(
+        screen.getByText(/Failure reason: Insufficient funds in destination account/)
+      ).toBeInTheDocument()
     })
   })
 

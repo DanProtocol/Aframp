@@ -202,7 +202,8 @@ export function SendPageClient({ balances = [] }: SendPageClientProps) {
             form.recipient.name ||
             contacts.find((c) => c.address === address)?.name ||
             `${address.slice(0, 6)}...${address.slice(-4)}`
-          const avatar = form.recipient.avatar || contacts.find((c) => c.address === address)?.avatar
+          const avatar =
+            form.recipient.avatar || contacts.find((c) => c.address === address)?.avatar
 
           const filtered = contacts.filter((c) => c.address !== address)
           const updatedContact: Contact = {
@@ -210,7 +211,8 @@ export function SendPageClient({ balances = [] }: SendPageClientProps) {
             name,
             address,
             avatar,
-            createdAt: contacts.find((c) => c.address === address)?.createdAt || new Date().toISOString(),
+            createdAt:
+              contacts.find((c) => c.address === address)?.createdAt || new Date().toISOString(),
           }
           localStorage.setItem(STORAGE_KEY, JSON.stringify([updatedContact, ...filtered]))
         } catch (err) {
@@ -219,11 +221,13 @@ export function SendPageClient({ balances = [] }: SendPageClientProps) {
       }
     } catch (cause) {
       setIsSending(false)
-      const errorMsg = cause instanceof Error ? cause.message : 'Send failed'
+      const errorMsg =
+        cause instanceof Error ? cause.message : 'Transaction failed. Please try again.'
       // Extract failure_reason if available from API response
-      const failureReasonMsg = cause instanceof Error && 'failureReason' in cause 
-        ? (cause as any).failureReason 
-        : undefined
+      const failureReasonMsg =
+        cause instanceof Error && 'failureReason' in cause
+          ? (cause as any).failureReason
+          : undefined
       setError(errorMsg)
       setFailureReason(failureReasonMsg || null)
       setStep('failure')
@@ -451,7 +455,7 @@ export function SendPageClient({ balances = [] }: SendPageClientProps) {
             isSending={isSending}
             error={error}
             failureReason={failureReason}
-            onBack={() => step === 'failure' ? setStep('confirm') : setStep('amount')}
+            onBack={() => (step === 'failure' ? setStep('confirm') : setStep('amount'))}
             onConfirm={handleSend}
             onDone={() => router.push('/home')}
             onRetry={handleRetry}

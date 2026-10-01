@@ -4,7 +4,7 @@ import VerifyOtpPage from './page'
 import { useSession } from '@/components/session-provider'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ApiError } from '@/lib/api'
-import { CHALLENGE_SESSION_KEY } from '@/app/login/page'
+import { CHALLENGE_SESSION_KEY } from '@/lib/otp-challenge'
 
 jest.mock('@/components/session-provider', () => ({
   useSession: jest.fn(),
@@ -105,7 +105,10 @@ describe('VerifyOtpPage', () => {
     await user.type(screen.getByLabelText(/6-digit code/i), '000000')
     await user.click(screen.getByRole('button', { name: /verify/i }))
 
-    expect(await screen.findByRole('link', { name: /start over/i })).toHaveAttribute('href', '/signup')
+    expect(await screen.findByRole('link', { name: /start over/i })).toHaveAttribute(
+      'href',
+      '/signup'
+    )
     expect(screen.queryByRole('button', { name: /^verify$/i })).not.toBeInTheDocument()
     expect(sessionStorage.getItem(CHALLENGE_SESSION_KEY)).toBeNull()
   })

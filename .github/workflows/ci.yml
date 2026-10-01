@@ -29,18 +29,18 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Build test image
-        run: docker-compose -f docker-compose.test.yml build
+        run: docker compose -f docker-compose.test.yml build
         env:
           BUILDKIT_INLINE_CACHE: 1
 
       - name: Run Lint
-        run: docker-compose -f docker-compose.test.yml run --rm aframp-lint
+        run: docker compose -f docker-compose.test.yml run --rm aframp-lint
 
       - name: Run TypeScript Check
-        run: docker-compose -f docker-compose.test.yml run --rm aframp-typecheck
+        run: docker compose -f docker-compose.test.yml run --rm aframp-typecheck
 
       - name: Run Prettier Check
-        run: docker-compose -f docker-compose.test.yml run --rm aframp-test npm run format:check
+        run: docker compose -f docker-compose.test.yml run --rm aframp-test npm run format:check
 
   security:
     name: Security Audit
@@ -93,12 +93,28 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Build test image
-        run: docker-compose -f docker-compose.test.yml build
+        run: docker compose -f docker-compose.test.yml build
         env:
           BUILDKIT_INLINE_CACHE: 1
 
       - name: Run tests with coverage
-        run: docker-compose -f docker-compose.test.yml run --rm aframp-test
+        run: docker compose -f docker-compose.test.yml run --rm aframp-test
+
+      # The tests above ran inside the Docker image; the bundle build runs on
+      # the runner, so it needs its own Node and dependencies.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # docker-compose.test.yml mounts node_modules and .next as anonymous
+      # volumes inside the repo bind mount, which leaves root-owned empty
+      # directories in the checkout; clear them so npm can write.
+      - name: Install dependencies
+        run: |
+          sudo rm -rf node_modules .next
+          npm ci
 
       - name: Check route bundle budget
         run: |
@@ -221,17 +237,19 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Build test image
-        run: docker-compose -f docker-compose.test.yml build
+        run: docker compose -f docker-compose.test.yml build
         env:
           BUILDKIT_INLINE_CACHE: 1
 
       - name: Run tests with coverage
-        run: docker-compose -f docker-compose.test.yml run --rm aframp-test
+        run: docker compose -f docker-compose.test.yml run --rm aframp-test
 
+      # Runs on the runner, not in the test container: the check needs git and
+      # the repo history (fetch-depth: 0 above), which the Alpine image lacks.
+      # It reads ./coverage, which the container wrote through its volume mount.
       - name: Require 80% coverage on changed files
         run: |
-          docker-compose -f docker-compose.test.yml run --rm aframp-test \
-            node scripts/check-diff-coverage.js \
+          node scripts/check-diff-coverage.js \
             "${{ github.event.pull_request.base.sha }}" \
             "${{ github.event.pull_request.head.sha }}"
 

@@ -7,6 +7,11 @@ jest.mock('@/components/session-provider', () => ({
   useSession: jest.fn(),
 }))
 
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: jest.fn(), push: jest.fn() }),
+  usePathname: () => '/admin',
+}))
+
 jest.mock('@/lib/api', () => ({
   api: {
     getMe: jest.fn(),

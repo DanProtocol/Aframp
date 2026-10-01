@@ -16,6 +16,7 @@ jest.mock('@/lib/api', () => {
   }
   return {
     api: {
+      getMe: jest.fn(),
       getBalances: jest.fn(),
       listWithdrawals: jest.fn(),
       createWithdrawal: jest.fn(),
@@ -41,8 +42,7 @@ jest.mock('@/components/ui/select', () => {
   const SelectItem = ({ value, children }: any) =>
     React.createElement('option', { value }, children)
 
-  const SelectContent = ({ children }: any) =>
-    React.createElement(React.Fragment, null, children)
+  const SelectContent = ({ children }: any) => React.createElement(React.Fragment, null, children)
 
   const flattenOptions = (nodes: any): any[] =>
     React.Children.toArray(nodes).flatMap((node: any) => {
@@ -115,6 +115,7 @@ function withdrawal(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   jest.clearAllMocks()
+  ;(api.getMe as jest.Mock).mockResolvedValue({ kyc_status: 'approved' })
   mockGetBalances.mockResolvedValue([])
   mockListWithdrawals.mockResolvedValue([])
   mockCreateWithdrawal.mockResolvedValue({})
@@ -229,6 +230,7 @@ describe('WithdrawPage', () => {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '044' } })
     await user.type(screen.getByLabelText('Account number'), '0123456789')
     await user.click(screen.getByRole('button', { name: 'Cash out' }))
+    await user.click(await screen.findByRole('button', { name: 'Confirm cash out' }))
 
     await waitFor(() =>
       expect(mockCreateWithdrawal).toHaveBeenCalledWith(

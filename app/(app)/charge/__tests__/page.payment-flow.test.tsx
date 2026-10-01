@@ -18,7 +18,10 @@ jest.mock('@/lib/api', () => ({
     createPaymentRequest: jest.fn(),
   },
   ApiError: class extends Error {
-    constructor(message: string, public status: number) {
+    constructor(
+      message: string,
+      public status: number
+    ) {
       super(message)
       this.name = 'ApiError'
     }
@@ -92,7 +95,7 @@ describe('ChargePage', () => {
 
       await user.click(screen.getByRole('button', { name: '1' }))
       await user.click(screen.getByRole('button', { name: '.' }))
-      
+
       // Try to add 8 decimal digits
       for (let i = 0; i < 8; i++) {
         await user.click(screen.getByRole('button', { name: '1' }))
@@ -120,7 +123,7 @@ describe('ChargePage', () => {
 
       await user.click(screen.getByRole('button', { name: 'Delete last digit' }))
 
-      expect(screen.getByText('0')).toBeInTheDocument()
+      expect(screen.getByTestId('charge-amount')).toHaveTextContent(/^0$/)
     })
 
     it('replaces leading zero when typing digits', async () => {
@@ -128,11 +131,11 @@ describe('ChargePage', () => {
       render(<ChargePage />)
 
       // Input starts at "0"
-      expect(screen.getByText('0')).toBeInTheDocument()
+      expect(screen.getByTestId('charge-amount')).toHaveTextContent(/^0$/)
 
       await user.click(screen.getByRole('button', { name: '5' }))
 
-      expect(screen.getByText('5')).toBeInTheDocument()
+      expect(screen.getByTestId('charge-amount')).toHaveTextContent(/^5$/)
       expect(screen.queryByText('05')).not.toBeInTheDocument()
     })
   })
@@ -226,9 +229,7 @@ describe('ChargePage', () => {
       await user.click(screen.getByRole('button', { name: '1' }))
       await user.click(screen.getByRole('button', { name: /Show payment code/i }))
 
-      expect(
-        await screen.findByText(/Set up your payment address first/i)
-      ).toBeInTheDocument()
+      expect(await screen.findByText(/Set up your payment address first/i)).toBeInTheDocument()
     })
 
     it('shows a generic error message for other failures', async () => {

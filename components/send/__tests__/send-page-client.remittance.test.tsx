@@ -9,7 +9,11 @@ jest.mock('next/navigation', () => ({
 }))
 
 jest.mock('@/components/session-provider', () => ({
-  useAuthenticatedSession: jest.fn(() => ({ token: 'test-token', userId: 'user-1', merchantId: 'merchant-1' })),
+  useAuthenticatedSession: jest.fn(() => ({
+    token: 'test-token',
+    userId: 'user-1',
+    merchantId: 'merchant-1',
+  })),
 }))
 
 jest.mock('@/lib/api', () => ({
@@ -110,9 +114,9 @@ describe('SendPageClient', () => {
       expect(mockCreateRemittance).toHaveBeenCalledWith(
         'test-token',
         DESTINATION,
-        10_000_000n,   // 1 XLM in stroops
+        10_000_000n, // 1 XLM in stroops
         'XLM',
-        undefined      // no memo
+        undefined // no memo
       )
     })
 
@@ -125,10 +129,17 @@ describe('SendPageClient', () => {
   it('passes the memo when the user fills in a note', async () => {
     const DESTINATION = 'GDESTINATION1234567890ABCDEFGHIJ'
     mockCreateRemittance.mockResolvedValueOnce({
-      id: 'rem-002', merchant_id: 'merchant-1', destination_address: DESTINATION,
-      amount_stroops: 25_000_000n, asset: 'XLM', memo: 'rent', status: 'pending',
-      tx_hash: null, failure_reason: null,
-      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      id: 'rem-002',
+      merchant_id: 'merchant-1',
+      destination_address: DESTINATION,
+      amount_stroops: 25_000_000n,
+      asset: 'XLM',
+      memo: 'rent',
+      status: 'pending',
+      tx_hash: null,
+      failure_reason: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
 
     render(<SendPageClient />)
@@ -156,7 +167,7 @@ describe('SendPageClient', () => {
       expect(mockCreateRemittance).toHaveBeenCalledWith(
         'test-token',
         DESTINATION,
-        25_000_000n,   // 2.5 XLM in stroops
+        25_000_000n, // 2.5 XLM in stroops
         'XLM',
         'rent'
       )
@@ -166,10 +177,17 @@ describe('SendPageClient', () => {
   it('passes the correct asset symbol when a non-default asset is selected', async () => {
     const DESTINATION = 'GDESTINATION1234567890ABCDEFGHIJ'
     mockCreateRemittance.mockResolvedValueOnce({
-      id: 'rem-003', merchant_id: 'merchant-1', destination_address: DESTINATION,
-      amount_stroops: 10_000_000n, asset: 'USDC', memo: null, status: 'pending',
-      tx_hash: null, failure_reason: null,
-      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      id: 'rem-003',
+      merchant_id: 'merchant-1',
+      destination_address: DESTINATION,
+      amount_stroops: 10_000_000n,
+      asset: 'USDC',
+      memo: null,
+      status: 'pending',
+      tx_hash: null,
+      failure_reason: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
 
     render(<SendPageClient />)
@@ -203,9 +221,7 @@ describe('SendPageClient', () => {
 
   it('displays an ApiError message to the user when the API rejects', async () => {
     const DESTINATION = 'GDESTINATION1234567890ABCDEFGHIJ'
-    mockCreateRemittance.mockRejectedValueOnce(
-      new ApiError('Insufficient balance', 422)
-    )
+    mockCreateRemittance.mockRejectedValueOnce(new ApiError('Insufficient balance', 422))
 
     render(<SendPageClient />)
     await navigateToConfirm(DESTINATION, '1')

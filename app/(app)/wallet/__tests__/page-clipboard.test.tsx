@@ -108,9 +108,7 @@ describe('WalletPage - Clipboard functionality', () => {
     await user.click(copyButton)
 
     expect(
-      await screen.findByText(
-        /Could not copy — please select and copy the address manually/i
-      )
+      await screen.findByText(/Could not copy — please select and copy the address manually/i)
     ).toBeInTheDocument()
 
     expect(consoleErrorSpy).toHaveBeenCalledWith('Clipboard copy failed:', mockError)
@@ -137,9 +135,7 @@ describe('WalletPage - Clipboard functionality', () => {
     await user.click(copyButton)
 
     expect(
-      await screen.findByText(
-        /Could not copy — please select and copy the address manually/i
-      )
+      await screen.findByText(/Could not copy — please select and copy the address manually/i)
     ).toBeInTheDocument()
 
     expect(consoleErrorSpy).toHaveBeenCalledWith('Clipboard copy failed:', mockError)
@@ -153,7 +149,7 @@ describe('WalletPage - Clipboard functionality', () => {
       },
       configurable: true,
     })
-    
+
     ;(api.getWallet as jest.Mock).mockRejectedValue(new Error('No wallet'))
 
     render(<WalletPage />)
@@ -186,7 +182,7 @@ describe('WalletPage - Clipboard functionality', () => {
     })
 
     const copyButton = screen.getByRole('button', { name: /Copy address/i })
-    
+
     // First attempt fails
     await user.click(copyButton)
     expect(

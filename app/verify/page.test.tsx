@@ -105,7 +105,10 @@ describe('VerifyOtpPage', () => {
     await user.type(screen.getByLabelText(/6-digit code/i), '000000')
     await user.click(screen.getByRole('button', { name: /verify/i }))
 
-    expect(await screen.findByRole('link', { name: /start over/i })).toHaveAttribute('href', '/signup')
+    expect(await screen.findByRole('link', { name: /start over/i })).toHaveAttribute(
+      'href',
+      '/signup'
+    )
     expect(screen.queryByRole('button', { name: /^verify$/i })).not.toBeInTheDocument()
     expect(sessionStorage.getItem(CHALLENGE_SESSION_KEY)).toBeNull()
   })

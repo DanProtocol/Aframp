@@ -120,7 +120,7 @@ function VerifyOtpForm() {
         <h1 className="font-display text-3xl font-semibold tracking-tight">Aframp Pay</h1>
         <p className="text-muted-foreground text-sm">
           {flow === 'signup'
-            ? "Enter the code we texted you to finish creating your account."
+            ? 'Enter the code we texted you to finish creating your account.'
             : 'Enter the code we texted you to finish signing in.'}
         </p>
       </header>

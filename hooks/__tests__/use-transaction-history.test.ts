@@ -4,7 +4,9 @@ import { mockTransactions } from '@/lib/fixtures/transactions'
 
 describe('useTransactionHistory', () => {
   it('filters and sorts transactions before pagination', () => {
-    const { result } = renderHook(() => useTransactionHistory({ transactions: mockTransactions, pageSize: 3 }))
+    const { result } = renderHook(() =>
+      useTransactionHistory({ transactions: mockTransactions, pageSize: 3 })
+    )
 
     act(() => {
       result.current.onFilterChange('failed')
@@ -27,7 +29,9 @@ describe('useTransactionHistory', () => {
   })
 
   it('moves to the next page when requested', () => {
-    const { result } = renderHook(() => useTransactionHistory({ transactions: mockTransactions, pageSize: 3 }))
+    const { result } = renderHook(() =>
+      useTransactionHistory({ transactions: mockTransactions, pageSize: 3 })
+    )
 
     act(() => {
       result.current.onPageChange(2)

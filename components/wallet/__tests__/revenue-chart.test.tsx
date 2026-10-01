@@ -109,6 +109,5 @@ describe('RevenueChart', () => {
     // Functions should not be called again since payments didn't change
     expect(buildDailyRevenueSpy).not.toHaveBeenCalled()
     expect(assetsInSeriesSpy).not.toHaveBeenCalled()
-
   })
 })

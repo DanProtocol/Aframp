@@ -189,9 +189,7 @@ describe('ApiKeysPage - One-time key reveal', () => {
     })
 
     // Verify warning messages are present
-    expect(
-      screen.getByText(/this is the only time you'll see the full key/i)
-    ).toBeInTheDocument()
+    expect(screen.getByText(/this is the only time you'll see the full key/i)).toBeInTheDocument()
     expect(
       screen.getByText(/once you close this dialog, the key will never be shown again/i)
     ).toBeInTheDocument()

@@ -5,7 +5,11 @@ import { api, ApiError } from '@/lib/api'
 
 // Mock dependencies
 jest.mock('@/components/session-provider', () => ({
-  useAuthenticatedSession: () => ({ token: 'test-token', userId: 'user-1', merchantId: 'merchant-1' }),
+  useAuthenticatedSession: () => ({
+    token: 'test-token',
+    userId: 'user-1',
+    merchantId: 'merchant-1',
+  }),
   useSession: () => ({
     me: {
       user_id: 'user-1',
@@ -26,7 +30,10 @@ jest.mock('@/lib/api', () => ({
     createWallet: jest.fn(),
   },
   ApiError: class ApiError extends Error {
-    constructor(message: string, public status: number) {
+    constructor(
+      message: string,
+      public status: number
+    ) {
       super(message)
     }
   },
@@ -50,7 +57,7 @@ function setupUser(options?: Parameters<typeof userEvent.setup>[0]) {
 describe('WalletPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    ;clipboardWriteText.mockResolvedValue(undefined)
+    clipboardWriteText.mockResolvedValue(undefined)
     installClipboard()
   })
 
@@ -129,9 +136,7 @@ describe('WalletPage', () => {
 
     it('shows error when clipboard write fails', async () => {
       const user = setupUser()
-      ;clipboardWriteText.mockRejectedValue(
-        new Error('Clipboard permission denied')
-      )
+      clipboardWriteText.mockRejectedValue(new Error('Clipboard permission denied'))
       ;(api.getWallet as jest.Mock).mockResolvedValue(mockWallet)
       ;(api.getBalances as jest.Mock).mockResolvedValue(mockBalances)
 

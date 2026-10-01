@@ -4,7 +4,11 @@ import { SendPageClient } from '../send-page-client'
 import { useRouter } from 'next/navigation'
 
 jest.mock('@/components/session-provider', () => ({
-  useAuthenticatedSession: () => ({ token: 'test-token', userId: 'user-1', merchantId: 'merchant-1' }),
+  useAuthenticatedSession: () => ({
+    token: 'test-token',
+    userId: 'user-1',
+    merchantId: 'merchant-1',
+  }),
 }))
 
 jest.mock('@/lib/api', () => ({
@@ -82,7 +86,7 @@ describe('SendPageClient', () => {
   describe('Amount step', () => {
     it('numpad correctly builds amount string', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
@@ -100,7 +104,7 @@ describe('SendPageClient', () => {
 
     it('numpad handles decimal correctly', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
@@ -118,7 +122,7 @@ describe('SendPageClient', () => {
 
     it('numpad handles decimal at start', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
@@ -130,7 +134,7 @@ describe('SendPageClient', () => {
 
     it('numpad handles backspace', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
@@ -153,7 +157,7 @@ describe('SendPageClient', () => {
 
     it('numpad limits decimal places to 6', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
@@ -176,7 +180,7 @@ describe('SendPageClient', () => {
 
     it('Review button is disabled when amount is zero or empty', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
@@ -195,7 +199,7 @@ describe('SendPageClient', () => {
 
     it('Review button is enabled when amount is greater than zero', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
@@ -208,7 +212,7 @@ describe('SendPageClient', () => {
 
     it('navigating back from amount step returns to recipient step', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })

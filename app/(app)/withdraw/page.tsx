@@ -25,7 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { api, ApiError, type Balance, type Me, type Withdrawal, type WithdrawalStatus } from '@/lib/api'
+import {
+  api,
+  ApiError,
+  type Balance,
+  type Me,
+  type Withdrawal,
+  type WithdrawalStatus,
+} from '@/lib/api'
 import { formatStroops, isWholeKobo, parseAmountToStroops } from '@/lib/money'
 import { useAuthenticatedSession } from '@/components/session-provider'
 import {
@@ -396,10 +403,7 @@ export default function WithdrawPage() {
             )}
             <AlertDialogFooter>
               <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                disabled={submitting}
-                onClick={() => void confirmWithdrawal()}
-              >
+              <AlertDialogAction disabled={submitting} onClick={() => void confirmWithdrawal()}>
                 {submitting ? 'Sending…' : 'Confirm cash out'}
               </AlertDialogAction>
             </AlertDialogFooter>

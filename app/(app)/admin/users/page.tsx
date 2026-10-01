@@ -60,11 +60,7 @@ export default function AdminUsersPage() {
             {
               header: 'Admin',
               render: (row) =>
-                row.is_admin ? (
-                  <Badge>Admin</Badge>
-                ) : (
-                  <span className="text-dim">—</span>
-                ),
+                row.is_admin ? <Badge>Admin</Badge> : <span className="text-dim">—</span>,
             },
             {
               header: 'Merchant',

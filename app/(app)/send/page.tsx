@@ -149,7 +149,8 @@ export default function SendPage() {
 
   function validate(): string | null {
     if (!state.address) return 'Enter recipient address.'
-    if (!validateAddress()) return 'Recipient address must be a valid 56-character Stellar address starting with G.'
+    if (!validateAddress())
+      return 'Recipient address must be a valid 56-character Stellar address starting with G.'
     if (stroops === null || stroops <= 0n) return 'Enter an amount to send.'
     if (!isWholeKobo(stroops)) return 'Amount must be a whole number of stroops.'
     if (stroops > available) return 'That is more than your available balance.'
@@ -166,7 +167,13 @@ export default function SendPage() {
 
     setState((prev) => ({ ...prev, submitting: true, error: null }))
     try {
-      await api.createRemittance(token, state.address, stroops!, state.asset, state.memo || undefined)
+      await api.createRemittance(
+        token,
+        state.address,
+        stroops!,
+        state.asset,
+        state.memo || undefined
+      )
       setState((prev) => ({
         ...prev,
         address: '',
@@ -319,21 +326,29 @@ export default function SendPage() {
             <div className="bg-raised border-hairline rounded-lg border p-3 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-dim">Amount</span>
-                <span>{formatStroops(stroops ?? 0n)} {state.asset}</span>
+                <span>
+                  {formatStroops(stroops ?? 0n)} {state.asset}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-dim">Fee</span>
-                <span>{formatStroops(state.feeEstimate.fee_stroops)} {state.asset}</span>
+                <span>
+                  {formatStroops(state.feeEstimate.fee_stroops)} {state.asset}
+                </span>
               </div>
               {state.feeEstimate.network_fee_stroops > 0n && (
                 <div className="flex justify-between">
                   <span className="text-dim">Network fee</span>
-                  <span>{formatStroops(state.feeEstimate.network_fee_stroops)} {state.asset}</span>
+                  <span>
+                    {formatStroops(state.feeEstimate.network_fee_stroops)} {state.asset}
+                  </span>
                 </div>
               )}
               <div className="border-hairline border-t pt-2 flex justify-between font-bold">
                 <span>Total</span>
-                <span>{formatStroops(totalAmount ?? 0n)} {state.asset}</span>
+                <span>
+                  {formatStroops(totalAmount ?? 0n)} {state.asset}
+                </span>
               </div>
             </div>
           )}
@@ -363,9 +378,7 @@ export default function SendPage() {
 
         {state.remittances.length > 0 && (
           <section className="space-y-3">
-            <h2 className="text-dim text-xs font-bold tracking-widest uppercase">
-              Recent sends
-            </h2>
+            <h2 className="text-dim text-xs font-bold tracking-widest uppercase">Recent sends</h2>
             <ul className="border-hairline divide-y">
               {state.remittances.map((remittance) => (
                 <li key={remittance.id} className="space-y-1 py-3">

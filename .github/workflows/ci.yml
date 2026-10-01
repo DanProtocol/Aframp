@@ -29,18 +29,18 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Build test image
-        run: docker-compose -f docker-compose.test.yml build
+        run: docker compose -f docker-compose.test.yml build
         env:
           BUILDKIT_INLINE_CACHE: 1
 
       - name: Run Lint
-        run: docker-compose -f docker-compose.test.yml run --rm aframp-lint
+        run: docker compose -f docker-compose.test.yml run --rm aframp-lint
 
       - name: Run TypeScript Check
-        run: docker-compose -f docker-compose.test.yml run --rm aframp-typecheck
+        run: docker compose -f docker-compose.test.yml run --rm aframp-typecheck
 
       - name: Run Prettier Check
-        run: docker-compose -f docker-compose.test.yml run --rm aframp-test npm run format:check
+        run: docker compose -f docker-compose.test.yml run --rm aframp-test npm run format:check
 
   security:
     name: Security Audit
@@ -93,12 +93,12 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Build test image
-        run: docker-compose -f docker-compose.test.yml build
+        run: docker compose -f docker-compose.test.yml build
         env:
           BUILDKIT_INLINE_CACHE: 1
 
       - name: Run tests with coverage
-        run: docker-compose -f docker-compose.test.yml run --rm aframp-test
+        run: docker compose -f docker-compose.test.yml run --rm aframp-test
 
       - name: Check route bundle budget
         run: |
@@ -221,16 +221,16 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Build test image
-        run: docker-compose -f docker-compose.test.yml build
+        run: docker compose -f docker-compose.test.yml build
         env:
           BUILDKIT_INLINE_CACHE: 1
 
       - name: Run tests with coverage
-        run: docker-compose -f docker-compose.test.yml run --rm aframp-test
+        run: docker compose -f docker-compose.test.yml run --rm aframp-test
 
       - name: Require 80% coverage on changed files
         run: |
-          docker-compose -f docker-compose.test.yml run --rm aframp-test \
+          docker compose -f docker-compose.test.yml run --rm aframp-test \
             node scripts/check-diff-coverage.js \
             "${{ github.event.pull_request.base.sha }}" \
             "${{ github.event.pull_request.head.sha }}"

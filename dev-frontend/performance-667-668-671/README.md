@@ -4,11 +4,13 @@ This directory contains complete sandbox copies of the affected production files
 focused tests. No protected root production paths are modified.
 
 ## #667 — Withdraw memoization
+
 - `config` is memoized with `[asset]`.
 - `available` is memoized with `[balances, asset]`.
 - Comments explain why each memo is bounded.
 
 ## #668 — SWR dashboard fetching
+
 - Replaces manual `useEffect` + local fetch state with `useSWR`.
 - Uses `['dashboard', token]` as the cache key.
 - Revalidates every 30 seconds.
@@ -16,6 +18,7 @@ focused tests. No protected root production paths are modified.
 - Uses SWR `mutate()` for retry.
 
 ### Dependency when promoted
+
 The root production package currently does not include `swr`.
 When maintainers promote this sandbox implementation, add:
 
@@ -26,6 +29,7 @@ npm install swr
 The protected root `package.json` and lockfile are intentionally untouched here.
 
 ## #671 — WalletSidebar memoization
+
 - Wraps the exported sidebar with `React.memo`.
 - The current app layout passes `<WalletSidebar />` with no props, so there are no
   unstable layout prop references to stabilize.

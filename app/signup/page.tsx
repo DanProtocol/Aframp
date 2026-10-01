@@ -16,7 +16,13 @@ import { getPasswordStrength, isCommonPassword } from '@/lib/password-strength'
 
 const MIN_PASSWORD_LENGTH = 8
 
-const STRENGTH_COLOR = ['bg-destructive', 'bg-destructive', 'bg-yellow-500', 'bg-green-500', 'bg-green-600']
+const STRENGTH_COLOR = [
+  'bg-destructive',
+  'bg-destructive',
+  'bg-yellow-500',
+  'bg-green-500',
+  'bg-green-600',
+]
 
 export default function SignupPage() {
   const { session, ready, signUp } = useSession()

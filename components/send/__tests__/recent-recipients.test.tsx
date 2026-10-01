@@ -1,6 +1,11 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { RecentRecipients, getStoredContacts, saveStoredContacts, Contact } from '../recent-recipients'
+import {
+  RecentRecipients,
+  getStoredContacts,
+  saveStoredContacts,
+  Contact,
+} from '../recent-recipients'
 
 describe('RecentRecipients and Contact Storage', () => {
   beforeEach(() => {
@@ -17,7 +22,13 @@ describe('RecentRecipients and Contact Storage', () => {
 
   test('saveStoredContacts and getStoredContacts persist contacts correctly', () => {
     const testContacts: Contact[] = [
-      { id: '1', address: 'G123', name: 'Alice', avatar: 'AL', createdAt: new Date().toISOString() },
+      {
+        id: '1',
+        address: 'G123',
+        name: 'Alice',
+        avatar: 'AL',
+        createdAt: new Date().toISOString(),
+      },
     ]
     saveStoredContacts(testContacts)
     const loaded = getStoredContacts()
@@ -36,7 +47,13 @@ describe('RecentRecipients and Contact Storage', () => {
 
   test('RecentRecipients loads custom contacts from localStorage', () => {
     const customContacts: Contact[] = [
-      { id: '2', address: 'GXYZ', name: 'Bob Smith', avatar: 'BS', createdAt: new Date().toISOString() },
+      {
+        id: '2',
+        address: 'GXYZ',
+        name: 'Bob Smith',
+        avatar: 'BS',
+        createdAt: new Date().toISOString(),
+      },
     ]
     saveStoredContacts(customContacts)
 

@@ -171,10 +171,7 @@ export default function ApiKeysPage() {
                 />
               </div>
               <DialogFooter>
-                <Button
-                  type="submit"
-                  disabled={creating || !newKeyName.trim()}
-                >
+                <Button type="submit" disabled={creating || !newKeyName.trim()}>
                   {creating ? 'Creating…' : 'Create key'}
                 </Button>
               </DialogFooter>
@@ -184,23 +181,30 @@ export default function ApiKeysPage() {
       </div>
 
       {/* One-time API key reveal dialog */}
-      <Dialog open={keyRevealDialogOpen} onOpenChange={(open) => {
-        // Only allow closing if acknowledged
-        if (!open && hasAcknowledgedCopy) {
-          dismissNewKey()
-        }
-      }}>
-        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => {
-          // Prevent closing by clicking outside until acknowledged
-          if (!hasAcknowledgedCopy) {
-            e.preventDefault()
+      <Dialog
+        open={keyRevealDialogOpen}
+        onOpenChange={(open) => {
+          // Only allow closing if acknowledged
+          if (!open && hasAcknowledgedCopy) {
+            dismissNewKey()
           }
-        }} onEscapeKeyDown={(e) => {
-          // Prevent closing by ESC until acknowledged
-          if (!hasAcknowledgedCopy) {
-            e.preventDefault()
-          }
-        }}>
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-md"
+          onPointerDownOutside={(e) => {
+            // Prevent closing by clicking outside until acknowledged
+            if (!hasAcknowledgedCopy) {
+              e.preventDefault()
+            }
+          }}
+          onEscapeKeyDown={(e) => {
+            // Prevent closing by ESC until acknowledged
+            if (!hasAcknowledgedCopy) {
+              e.preventDefault()
+            }
+          }}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="size-5 text-amber-500" aria-hidden />
@@ -210,13 +214,13 @@ export default function ApiKeysPage() {
               This is the only time you'll see the full key. Copy it now and store it securely.
             </DialogDescription>
           </DialogHeader>
-          
+
           {newKeyResult && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="new-key">API Key</Label>
                 <div className="flex items-center gap-2">
-                  <code 
+                  <code
                     id="new-key"
                     className="bg-raised flex-1 rounded-lg px-3 py-2 text-xs break-all font-mono text-white"
                   >
@@ -236,7 +240,7 @@ export default function ApiKeysPage() {
               <Alert className="border-amber-500/30 bg-amber-500/10">
                 <AlertTriangle className="size-4 text-amber-400" aria-hidden />
                 <AlertDescription className="text-amber-100/90 text-sm">
-                  Once you close this dialog, the key will never be shown again. If you lose it, 
+                  Once you close this dialog, the key will never be shown again. If you lose it,
                   you'll need to revoke this key and create a new one.
                 </AlertDescription>
               </Alert>
@@ -249,10 +253,7 @@ export default function ApiKeysPage() {
                   aria-label="I have copied my key"
                 />
                 <div className="space-y-1">
-                  <Label 
-                    htmlFor="acknowledge-copy" 
-                    className="text-sm font-medium cursor-pointer"
-                  >
+                  <Label htmlFor="acknowledge-copy" className="text-sm font-medium cursor-pointer">
                     I have copied my key
                   </Label>
                   <p className="text-dim text-xs">
@@ -264,11 +265,7 @@ export default function ApiKeysPage() {
           )}
 
           <DialogFooter>
-            <Button
-              onClick={dismissNewKey}
-              disabled={!hasAcknowledgedCopy}
-              className="w-full"
-            >
+            <Button onClick={dismissNewKey} disabled={!hasAcknowledgedCopy} className="w-full">
               Done
             </Button>
           </DialogFooter>
@@ -323,12 +320,15 @@ export default function ApiKeysPage() {
                 </div>
 
                 {!key.revoked_at && (
-                  <Dialog open={revokeDialogOpen && revokeTarget?.id === key.id} onOpenChange={(open) => {
-                    if (!open) {
-                      setRevokeDialogOpen(false)
-                      setRevokeTarget(null)
-                    }
-                  }}>
+                  <Dialog
+                    open={revokeDialogOpen && revokeTarget?.id === key.id}
+                    onOpenChange={(open) => {
+                      if (!open) {
+                        setRevokeDialogOpen(false)
+                        setRevokeTarget(null)
+                      }
+                    }}
+                  >
                     <DialogTrigger asChild>
                       <Button
                         size="icon-sm"

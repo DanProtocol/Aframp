@@ -121,7 +121,8 @@ export default function PaymentRequestPage({ params }: { params: Promise<{ id: s
 
   const amount = `${formatStroops(request.amount_stroops)} ${request.asset}`
   const paidAmount = request.amount_paid_stroops ?? 0n
-  const paidRatio = request.amount_stroops > 0n ? Number((paidAmount * 100n) / request.amount_stroops) : 0
+  const paidRatio =
+    request.amount_stroops > 0n ? Number((paidAmount * 100n) / request.amount_stroops) : 0
   const hasPartialPayment = request.allow_partial || paidAmount > 0n
 
   if (request.status === 'paid') {

@@ -98,10 +98,7 @@ export function ZarOnramp({ token, onSuccess }: ZarOnrampProps) {
       } catch {
         throw new Error('Invalid payment URL received from server.')
       }
-      if (
-        parsedUrl.protocol !== 'https:' ||
-        !parsedUrl.hostname.endsWith('ozow.com')
-      ) {
+      if (parsedUrl.protocol !== 'https:' || !parsedUrl.hostname.endsWith('ozow.com')) {
         throw new Error('Payment URL failed security validation. Please contact support.')
       }
 
@@ -119,9 +116,7 @@ export function ZarOnramp({ token, onSuccess }: ZarOnrampProps) {
     <Card>
       <CardHeader>
         <CardTitle>Buy Crypto with ZAR</CardTitle>
-        <CardDescription>
-          Instant bank transfer via Ozow - Funds arrive in minutes
-        </CardDescription>
+        <CardDescription>Instant bank transfer via Ozow - Funds arrive in minutes</CardDescription>
       </CardHeader>
       <CardContent>
         {isVerifying && (

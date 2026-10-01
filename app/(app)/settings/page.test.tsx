@@ -149,7 +149,7 @@ describe('ProfilePage - Account deletion confirmation', () => {
     const user = userEvent.setup()
     const mockSignOut = jest.fn()
     const mockReplace = jest.fn()
-    
+
     ;(useSession as jest.Mock).mockReturnValue({
       signOut: mockSignOut,
       refreshMe: jest.fn(),

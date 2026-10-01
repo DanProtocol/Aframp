@@ -6,11 +6,25 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ErrorState } from '@/components/ui/error-state'
 import { EmptyStateIllustration } from '@/components/ui/empty-state-illustration'
-import { api, ApiError, type Balance, type Payment, type PaymentStatus, type Refund } from '@/lib/api'
+import {
+  api,
+  ApiError,
+  type Balance,
+  type Payment,
+  type PaymentStatus,
+  type Refund,
+} from '@/lib/api'
 import { formatStroops, parseAmountToStroops } from '@/lib/money'
 import {
   filterPaymentsByDateRange,
@@ -158,7 +172,9 @@ export default function TransactionsPage() {
           cleanedRecipient,
           cleanedReason || undefined
         )
-        setRefundNotice(`Refund requested successfully for ${formatStroops(refund.amount_stroops)} ${refund.asset}.`)
+        setRefundNotice(
+          `Refund requested successfully for ${formatStroops(refund.amount_stroops)} ${refund.asset}.`
+        )
         setRefundDialogOpen(false)
         setRefundTarget(null)
         setRefundAmount('')
@@ -333,16 +349,19 @@ export default function TransactionsPage() {
         </ul>
       )}
 
-      <Dialog open={refundDialogOpen} onOpenChange={(open) => {
-        setRefundDialogOpen(open)
-        if (!open) {
-          setRefundTarget(null)
-          setRefundAmount('')
-          setRefundRecipient('')
-          setRefundReason('')
-          setRefundFormError(null)
-        }
-      }}>
+      <Dialog
+        open={refundDialogOpen}
+        onOpenChange={(open) => {
+          setRefundDialogOpen(open)
+          if (!open) {
+            setRefundTarget(null)
+            setRefundAmount('')
+            setRefundRecipient('')
+            setRefundReason('')
+            setRefundFormError(null)
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Refund payment</DialogTitle>
@@ -383,9 +402,7 @@ export default function TransactionsPage() {
                 placeholder="Customer requested a refund"
               />
             </div>
-            {refundFormError && (
-              <p className="text-sm text-destructive">{refundFormError}</p>
-            )}
+            {refundFormError && <p className="text-sm text-destructive">{refundFormError}</p>}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setRefundDialogOpen(false)}>
                 Cancel

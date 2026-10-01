@@ -9,11 +9,11 @@ export interface UseDataLoaderResult<T> {
 
 /**
  * Generic hook for loading data with automatic abort cleanup.
- * 
+ *
  * @param fetcher - Async function that accepts an AbortSignal and returns the data
  * @param deps - Dependency array that triggers a reload when changed
  * @returns Object containing data, error, loading state, and reload function
- * 
+ *
  * @example
  * const { data, error, loading, reload } = useDataLoader(
  *   async (signal) => api.getBalances(token, signal),
@@ -28,29 +28,26 @@ export function useDataLoader<T>(
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const load = useCallback(
-    async (signal: AbortSignal) => {
-      setLoading(true)
-      setError(null)
-      try {
-        const result = await fetcher(signal)
-        if (!signal.aborted) {
-          setData(result)
-          setLoading(false)
-        }
-      } catch (cause) {
-        if (cause instanceof DOMException && cause.name === 'AbortError') {
-          return
-        }
-        if (!signal.aborted) {
-          setError(cause instanceof Error ? cause.message : 'An error occurred')
-          setData(null)
-          setLoading(false)
-        }
+  const load = useCallback(async (signal: AbortSignal) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await fetcher(signal)
+      if (!signal.aborted) {
+        setData(result)
+        setLoading(false)
       }
-    },
-    deps
-  )
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === 'AbortError') {
+        return
+      }
+      if (!signal.aborted) {
+        setError(cause instanceof Error ? cause.message : 'An error occurred')
+        setData(null)
+        setLoading(false)
+      }
+    }
+  }, deps)
 
   const reload = useCallback(() => {
     const controller = new AbortController()

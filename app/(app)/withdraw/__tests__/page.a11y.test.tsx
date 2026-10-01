@@ -42,8 +42,7 @@ jest.mock('@/components/ui/select', () => {
   const SelectItem = ({ value, children }: any) =>
     React.createElement('option', { value }, children)
 
-  const SelectContent = ({ children }: any) =>
-    React.createElement(React.Fragment, null, children)
+  const SelectContent = ({ children }: any) => React.createElement(React.Fragment, null, children)
 
   const flattenOptions = (nodes: any): any[] =>
     React.Children.toArray(nodes).flatMap((node: any) => {

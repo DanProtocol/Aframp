@@ -5,7 +5,11 @@ import { type Balance } from '@/lib/api'
 import { useRouter } from 'next/navigation'
 
 jest.mock('@/components/session-provider', () => ({
-  useAuthenticatedSession: jest.fn(() => ({ token: 'test-token', userId: 'user-1', merchantId: 'merchant-1' })),
+  useAuthenticatedSession: jest.fn(() => ({
+    token: 'test-token',
+    userId: 'user-1',
+    merchantId: 'merchant-1',
+  })),
 }))
 
 jest.mock('@/lib/api', () => ({

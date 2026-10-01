@@ -18,7 +18,10 @@ jest.mock('@/lib/api', () => ({
     createPaymentRequest: jest.fn(),
   },
   ApiError: class extends Error {
-    constructor(message: string, public status: number) {
+    constructor(
+      message: string,
+      public status: number
+    ) {
       super(message)
       this.name = 'ApiError'
     }
@@ -92,7 +95,7 @@ describe('ChargePage', () => {
 
       await user.click(screen.getByRole('button', { name: '1' }))
       await user.click(screen.getByRole('button', { name: '.' }))
-      
+
       // Try to add 8 decimal digits
       for (let i = 0; i < 8; i++) {
         await user.click(screen.getByRole('button', { name: '1' }))
@@ -226,9 +229,7 @@ describe('ChargePage', () => {
       await user.click(screen.getByRole('button', { name: '1' }))
       await user.click(screen.getByRole('button', { name: /Show payment code/i }))
 
-      expect(
-        await screen.findByText(/Set up your payment address first/i)
-      ).toBeInTheDocument()
+      expect(await screen.findByText(/Set up your payment address first/i)).toBeInTheDocument()
     })
 
     it('shows a generic error message for other failures', async () => {

@@ -358,12 +358,10 @@ export default function ProfilePage() {
               <AlertDialogTitle>Delete your account?</AlertDialogTitle>
               <AlertDialogDescription className="space-y-3">
                 <p>
-                  This will permanently delete your merchant account, wallet, payment history, and all
-                  API keys. Any pending payments or withdrawals will be lost.
+                  This will permanently delete your merchant account, wallet, payment history, and
+                  all API keys. Any pending payments or withdrawals will be lost.
                 </p>
-                <p className="font-semibold text-destructive">
-                  This action cannot be undone.
-                </p>
+                <p className="font-semibold text-destructive">This action cannot be undone.</p>
                 <div className="space-y-2 pt-2">
                   <Label htmlFor="delete-confirm-email" className="text-foreground">
                     Type your email address to confirm: <strong>{displayEmail}</strong>

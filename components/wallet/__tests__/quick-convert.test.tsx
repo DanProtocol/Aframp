@@ -23,7 +23,7 @@ function mockRequest(overrides: Partial<PaymentRequest> = {}): PaymentRequest {
 describe('QuickConvert', () => {
   it('renders no open requests state when openRequests is empty', () => {
     render(<QuickConvert openRequests={[]} />)
-    
+
     expect(screen.getByText('Waiting to be paid')).toBeInTheDocument()
     expect(screen.getByText('No open charges right now.')).toBeInTheDocument()
   })
@@ -36,7 +36,7 @@ describe('QuickConvert', () => {
     ]
 
     render(<QuickConvert openRequests={requests} />)
-    
+
     expect(screen.queryByText('No open charges right now.')).not.toBeInTheDocument()
     expect(screen.getByText('5 XLM')).toBeInTheDocument()
     expect(screen.getByText('7.5 XLM')).toBeInTheDocument()
@@ -49,7 +49,7 @@ describe('QuickConvert', () => {
     )
 
     render(<QuickConvert openRequests={requests} />)
-    
+
     // Should only render 5 list items
     const listItems = screen.getAllByRole('link')
     expect(listItems).toHaveLength(6) // 5 requests + 1 "New charge" button
@@ -62,18 +62,18 @@ describe('QuickConvert', () => {
     ]
 
     render(<QuickConvert openRequests={requests} />)
-    
-    const requestLinks = screen.getAllByRole('link').filter(link => 
-      link.getAttribute('href')?.includes('/request/')
-    )
-    
+
+    const requestLinks = screen
+      .getAllByRole('link')
+      .filter((link) => link.getAttribute('href')?.includes('/request/'))
+
     expect(requestLinks[0]).toHaveAttribute('href', '/request/req-123')
     expect(requestLinks[1]).toHaveAttribute('href', '/request/req-456')
   })
 
   it('New charge button links to /charge', () => {
     render(<QuickConvert openRequests={[]} />)
-    
+
     const chargeButton = screen.getByRole('link', { name: /new charge/i })
     expect(chargeButton).toHaveAttribute('href', '/charge')
   })

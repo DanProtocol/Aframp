@@ -39,9 +39,7 @@ const SHORT_ADDRESS = 'GCEZWK…XTOS'
 
 describe('loading state', () => {
   it('renders a skeleton and no wallet name when loading=true', () => {
-    render(
-      <WalletInfo walletName="My Wallet" walletAddress={FULL_ADDRESS} loading />
-    )
+    render(<WalletInfo walletName="My Wallet" walletAddress={FULL_ADDRESS} loading />)
     expect(screen.queryByText('My Wallet')).not.toBeInTheDocument()
     // Skeletons are rendered as divs with a skeleton class; at minimum the
     // component should not throw and should render something.

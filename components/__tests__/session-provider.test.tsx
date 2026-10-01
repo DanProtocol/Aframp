@@ -1,10 +1,5 @@
 import { renderHook, act, render, screen, waitFor } from '@testing-library/react'
-import {
-  api,
-  type LoginResult,
-  type Me,
-  type OtpChallengeResponse,
-} from '@/lib/api'
+import { api, type LoginResult, type Me, type OtpChallengeResponse } from '@/lib/api'
 import { SessionProvider, useSession, useAuthenticatedSession } from '../session-provider'
 
 let unauthorizedCallback: (() => void) | null = null
@@ -194,7 +189,11 @@ describe('SessionProvider', () => {
   })
 
   it('completeOtp verifies the code and persists the session', async () => {
-    mockApi.verifyOtp.mockResolvedValue({ token: 'tok-otp', user_id: 'u-otp', merchant_id: 'm-otp' })
+    mockApi.verifyOtp.mockResolvedValue({
+      token: 'tok-otp',
+      user_id: 'u-otp',
+      merchant_id: 'm-otp',
+    })
     const { result } = await renderSession()
 
     await act(async () => {
@@ -202,7 +201,11 @@ describe('SessionProvider', () => {
     })
 
     expect(mockApi.verifyOtp).toHaveBeenCalledWith('chal-1', '123456')
-    expect(result.current.session).toEqual({ token: 'tok-otp', userId: 'u-otp', merchantId: 'm-otp' })
+    expect(result.current.session).toEqual({
+      token: 'tok-otp',
+      userId: 'u-otp',
+      merchantId: 'm-otp',
+    })
     expect(sessionCalls('POST')).toHaveLength(1)
   })
 

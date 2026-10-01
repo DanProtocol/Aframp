@@ -11,11 +11,7 @@ function TestConsumer() {
   return (
     <div>
       <span data-testid="session">{session ? session.token : 'none'}</span>
-      <button
-        onClick={() =>
-          signIn('user@example.com', 'password').catch(() => {})
-        }
-      >
+      <button onClick={() => signIn('user@example.com', 'password').catch(() => {})}>
         Sign in
       </button>
     </div>
@@ -59,7 +55,10 @@ describe('SessionProvider', () => {
 
   it('hydrates the session from /api/session on mount, not localStorage', async () => {
     // Simulate a stale localStorage entry (e.g. from before the migration)
-    localStorage.setItem('aframp.session', JSON.stringify({ token: 'old', userId: 'u', merchantId: null }))
+    localStorage.setItem(
+      'aframp.session',
+      JSON.stringify({ token: 'old', userId: 'u', merchantId: null })
+    )
 
     // /api/session GET returns a fresh cookie-based session
     fetchMock.mockResolvedValueOnce({

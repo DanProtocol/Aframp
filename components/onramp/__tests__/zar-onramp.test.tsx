@@ -77,9 +77,7 @@ describe('ZarOnramp – payment_url validation (#639)', () => {
     await fillAndSubmit(user)
 
     // javascript: parses as a URL, so it's caught by the protocol check.
-    expect(
-      await screen.findByText(/Payment URL failed security validation/i)
-    ).toBeInTheDocument()
+    expect(await screen.findByText(/Payment URL failed security validation/i)).toBeInTheDocument()
     expect(mockRedirectTo).not.toHaveBeenCalled()
   })
 
@@ -91,9 +89,7 @@ describe('ZarOnramp – payment_url validation (#639)', () => {
 
     await fillAndSubmit(user)
 
-    expect(
-      await screen.findByText(/Payment URL failed security validation/i)
-    ).toBeInTheDocument()
+    expect(await screen.findByText(/Payment URL failed security validation/i)).toBeInTheDocument()
     expect(mockRedirectTo).not.toHaveBeenCalled()
   })
 
@@ -105,9 +101,7 @@ describe('ZarOnramp – payment_url validation (#639)', () => {
 
     await fillAndSubmit(user)
 
-    expect(
-      await screen.findByText(/Payment URL failed security validation/i)
-    ).toBeInTheDocument()
+    expect(await screen.findByText(/Payment URL failed security validation/i)).toBeInTheDocument()
     expect(mockRedirectTo).not.toHaveBeenCalled()
   })
 })

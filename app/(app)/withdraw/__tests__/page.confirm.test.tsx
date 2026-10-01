@@ -15,6 +15,7 @@ jest.mock('@/lib/api', () => {
   }
   return {
     api: {
+      getMe: jest.fn(),
       getBalances: jest.fn(),
       listWithdrawals: jest.fn(),
       createWithdrawal: jest.fn(),
@@ -77,6 +78,7 @@ function withdrawal(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   jest.clearAllMocks()
+  ;(api.getMe as jest.Mock).mockResolvedValue({ kyc_status: 'approved' })
   mockGetBalances.mockResolvedValue([])
   mockListWithdrawals.mockResolvedValue([])
   mockCreateWithdrawal.mockResolvedValue({})

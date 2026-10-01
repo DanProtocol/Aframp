@@ -226,7 +226,8 @@ export default function WithdrawPage() {
     }
   }
 
-  if (!balances || !me) {
+  // A failed load leaves `me` null; fall through so the error below is shown.
+  if (!balances || (!me && !error)) {
     return (
       <div className="flex justify-center py-16">
         <LoadingSpinner />
@@ -234,7 +235,7 @@ export default function WithdrawPage() {
     )
   }
 
-  if (me.kyc_status !== 'approved') {
+  if (me && me.kyc_status !== 'approved') {
     return (
       <div>
         <header>

@@ -3,6 +3,15 @@ import '@testing-library/jest-dom'
 import { SendPageClient } from '../send-page-client'
 import { useRouter } from 'next/navigation'
 
+jest.mock('@/components/session-provider', () => ({
+  useAuthenticatedSession: () => ({ token: 'test-token', userId: 'user-1', merchantId: 'merchant-1' }),
+}))
+
+jest.mock('@/lib/api', () => ({
+  api: { createRemittance: jest.fn().mockResolvedValue({}) },
+  ApiError: class ApiError extends Error {},
+}))
+
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }))
@@ -63,80 +72,80 @@ describe('SendPageClient - Complete Flow Tests', () => {
     })
 
     it('numpad correctly builds amount string', () => {
-      fireEvent.click(screen.getByRole('button', { name: '1' }))
-      fireEvent.click(screen.getByRole('button', { name: '2' }))
-      fireEvent.click(screen.getByRole('button', { name: '3' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 2' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 3' }))
       
-      expect(screen.getByText('123')).toBeInTheDocument()
+      expect(screen.getByText('123', { selector: 'span' })).toBeInTheDocument()
     })
 
     it('numpad handles decimal correctly', () => {
-      fireEvent.click(screen.getByRole('button', { name: '5' }))
-      fireEvent.click(screen.getByRole('button', { name: '.' }))
-      fireEvent.click(screen.getByRole('button', { name: '5' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 5' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add decimal point' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 5' }))
       
-      expect(screen.getByText('5.5')).toBeInTheDocument()
+      expect(screen.getByText('5.5', { selector: 'span' })).toBeInTheDocument()
     })
 
     it('prevents multiple decimals', () => {
-      fireEvent.click(screen.getByRole('button', { name: '1' }))
-      fireEvent.click(screen.getByRole('button', { name: '.' }))
-      fireEvent.click(screen.getByRole('button', { name: '5' }))
-      fireEvent.click(screen.getByRole('button', { name: '.' }))
-      fireEvent.click(screen.getByRole('button', { name: '5' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add decimal point' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 5' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add decimal point' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 5' }))
       
-      expect(screen.getByText('1.55')).toBeInTheDocument()
+      expect(screen.getByText('1.55', { selector: 'span' })).toBeInTheDocument()
     })
 
     it('adds leading zero when decimal is pressed first', () => {
-      fireEvent.click(screen.getByRole('button', { name: '.' }))
-      fireEvent.click(screen.getByRole('button', { name: '5' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add decimal point' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 5' }))
       
-      expect(screen.getByText('0.5')).toBeInTheDocument()
+      expect(screen.getByText('0.5', { selector: 'span' })).toBeInTheDocument()
     })
 
     it('replaces leading zero with number when typing', () => {
-      fireEvent.click(screen.getByRole('button', { name: '.' }))
-      fireEvent.click(screen.getByRole('button', { name: '5' }))
-      expect(screen.getByText('0.5')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Add decimal point' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 5' }))
+      expect(screen.getByText('0.5', { selector: 'span' })).toBeInTheDocument()
       
       // Clear and start fresh
-      fireEvent.click(screen.getByRole('button', { name: '⌫' }))
-      fireEvent.click(screen.getByRole('button', { name: '⌫' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Delete amount' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Delete amount' }))
       
-      fireEvent.click(screen.getByRole('button', { name: '5' }))
-      expect(screen.getByText('5')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 5' }))
+      expect(screen.getByText('5', { selector: 'span' })).toBeInTheDocument()
     })
 
     it('numpad handles backspace correctly', () => {
-      fireEvent.click(screen.getByRole('button', { name: '1' }))
-      fireEvent.click(screen.getByRole('button', { name: '2' }))
-      fireEvent.click(screen.getByRole('button', { name: '3' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 2' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 3' }))
       
-      expect(screen.getByText('123')).toBeInTheDocument()
+      expect(screen.getByText('123', { selector: 'span' })).toBeInTheDocument()
       
-      fireEvent.click(screen.getByRole('button', { name: '⌫' }))
-      expect(screen.getByText('12')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Delete amount' }))
+      expect(screen.getByText('12', { selector: 'span' })).toBeInTheDocument()
       
-      fireEvent.click(screen.getByRole('button', { name: '⌫' }))
-      expect(screen.getByText('1')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Delete amount' }))
+      expect(screen.getByText('1', { selector: 'span' })).toBeInTheDocument()
       
-      fireEvent.click(screen.getByRole('button', { name: '⌫' }))
-      expect(screen.getByText('0')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Delete amount' }))
+      expect(screen.getByText('0', { selector: 'span' })).toBeInTheDocument()
     })
 
     it('limits decimal places to 6', () => {
-      fireEvent.click(screen.getByRole('button', { name: '1' }))
-      fireEvent.click(screen.getByRole('button', { name: '.' }))
-      fireEvent.click(screen.getByRole('button', { name: '1' }))
-      fireEvent.click(screen.getByRole('button', { name: '2' }))
-      fireEvent.click(screen.getByRole('button', { name: '3' }))
-      fireEvent.click(screen.getByRole('button', { name: '4' }))
-      fireEvent.click(screen.getByRole('button', { name: '5' }))
-      fireEvent.click(screen.getByRole('button', { name: '6' }))
-      fireEvent.click(screen.getByRole('button', { name: '7' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add decimal point' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 2' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 3' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 4' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 5' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 6' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 7' }))
       
-      expect(screen.getByText('1.123456')).toBeInTheDocument()
+      expect(screen.getByText('1.123456', { selector: 'span' })).toBeInTheDocument()
     })
   })
 
@@ -193,7 +202,7 @@ describe('SendPageClient - Complete Flow Tests', () => {
     })
 
     it('Review button is enabled when amount is greater than zero', () => {
-      fireEvent.click(screen.getByRole('button', { name: '5' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 5' }))
       
       const reviewButton = screen.getByRole('button', { name: /review/i })
       expect(reviewButton).not.toBeDisabled()

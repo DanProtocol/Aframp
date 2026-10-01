@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { SendPageClient, buildAssets } from '../send-page-client'
 import { type Balance } from '@/lib/api'
@@ -50,7 +50,6 @@ describe('SendPageClient', () => {
   })
 
   it('redirects to /home (a real route) when the success step is done', async () => {
-    jest.useFakeTimers()
     render(<SendPageClient balances={mockBalances} />)
 
     fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
@@ -58,18 +57,15 @@ describe('SendPageClient', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: /continue/i }))
 
-    fireEvent.click(screen.getByRole('button', { name: '1' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter amount 1' }))
     fireEvent.click(screen.getByRole('button', { name: /review/i }))
 
     fireEvent.click(screen.getByRole('button', { name: /confirm send/i }))
-    await jest.runAllTimersAsync()
 
-    fireEvent.click(screen.getByRole('button', { name: /back to dashboard/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /back to dashboard/i }))
 
     expect(mockPush).toHaveBeenCalledWith('/home')
     expect(mockPush).not.toHaveBeenCalledWith('/dashboard')
-
-    jest.useRealTimers()
   })
 
   const goToAmountStep = () => {
@@ -85,7 +81,7 @@ describe('SendPageClient', () => {
     goToAmountStep()
 
     const amountDisplay = screen.getByText('0', { selector: 'span' }).parentElement?.parentElement
-    const keypad = screen.getByRole('button', { name: '1' }).parentElement
+    const keypad = screen.getByRole('button', { name: 'Enter amount 1' }).parentElement
 
     expect(amountDisplay).toHaveClass('flex-1')
     expect(amountDisplay).toHaveClass('shrink-0')
@@ -116,9 +112,14 @@ describe('SendPageClient', () => {
   it('ignores keyboard input when the amount step is not active', () => {
     render(<SendPageClient balances={mockBalances} />)
 
+    // Keys pressed on the recipient step must not reach the amount.
     fireEvent.keyDown(window, { key: '9' })
-    fireEvent.keyDown(window, { key: 'Backspace' })
     fireEvent.keyDown(window, { key: '.' })
+
+    fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
+      target: { value: 'GABCDEF123' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
 
     expect(screen.getByText('0', { selector: 'span' })).toBeInTheDocument()
   })
@@ -162,9 +163,7 @@ describe('SendPageClient', () => {
     expect(screen.getByText(/Balance: 500 USDC/)).toBeInTheDocument()
   })
 
-  it('adds a contact to localStorage after a successful send', () => {
-    jest.useFakeTimers()
-
+  it('adds a contact to localStorage after a successful send', async () => {
     render(<SendPageClient balances={mockBalances} />)
 
     fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
@@ -174,16 +173,14 @@ describe('SendPageClient', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: /continue/i }))
 
-    fireEvent.click(screen.getByRole('button', { name: '1' }))
-    fireEvent.click(screen.getByRole('button', { name: '0' }))
-    fireEvent.click(screen.getByRole('button', { name: '0' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter amount 1' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter amount 0' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter amount 0' }))
 
     fireEvent.click(screen.getByRole('button', { name: /review/i }))
     fireEvent.click(screen.getByRole('button', { name: /confirm send/i }))
 
-    act(() => {
-      jest.advanceTimersByTime(2200)
-    })
+    await screen.findByText(/sent successfully/i)
 
     const stored = localStorage.getItem('aframp_contacts')
     expect(stored).not.toBeNull()
@@ -194,8 +191,6 @@ describe('SendPageClient', () => {
         (c) => c.address === 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
       )
     ).toBe(true)
-
-    jest.useRealTimers()
   })
 })
 

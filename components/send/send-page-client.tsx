@@ -219,7 +219,8 @@ export function SendPageClient({ balances = [] }: SendPageClientProps) {
       }
     } catch (cause) {
       setIsSending(false)
-      const errorMsg = cause instanceof Error ? cause.message : 'Send failed'
+      const errorMsg =
+        cause instanceof Error ? cause.message : 'Transaction failed. Please try again.'
       // Extract failure_reason if available from API response
       const failureReasonMsg = cause instanceof Error && 'failureReason' in cause 
         ? (cause as any).failureReason 

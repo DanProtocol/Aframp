@@ -23,16 +23,11 @@ interface SessionContextValue {
   session: Session | null
   /** False until the cookie has been read from the server — guards against redirecting on first paint. */
   ready: boolean
-  /** Returns the raw result so the caller can branch: a session (legacy
-   * no-phone accounts) vs a challenge (everyone else) that needs `/verify`. */
   signIn: (email: string, password: string) => Promise<LoginResult>
-  /** Always a challenge — the account doesn't exist until `completeOtp` succeeds. */
   signUp: (email: string, password: string, name: string, phoneNumber: string) => Promise<OtpChallengeResponse>
   completeOtp: (challengeId: string, code: string) => Promise<void>
   signOut: () => void
-  /** Re-fetches /me and updates any cached profile data. */
   refreshMe: () => Promise<Me | null>
-  /** Latest profile data from /me, if fetched. */
   me: Me | null
 }
 
@@ -107,8 +102,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   )
 
   const signOut = useCallback(() => {
-    // Best-effort: a failed logout call shouldn't block clearing the local
-    // session, but it's the only thing that clears the server-side cookie.
     if (session) api.logout(session.token).catch(() => {})
     clearCookie().catch(() => {})
     setSession(null)
@@ -126,8 +119,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [session])
 
-  // Tokens expire after 24h with no refresh path, so drop the session on any
-  // 401 from an authenticated call — the route guards handle the redirect.
   useEffect(() => {
     setUnauthorizedHandler(signOut)
     return () => setUnauthorizedHandler(null)
@@ -147,10 +138,6 @@ export function useSession() {
   return context
 }
 
-/**
- * For screens that cannot render without a token. The `(app)` layout guarantees
- * one exists before mounting children, so this narrows the type for them.
- */
 export function useAuthenticatedSession(): Session {
   const { session } = useSession()
   if (!session) throw new Error('This screen requires a signed-in merchant')

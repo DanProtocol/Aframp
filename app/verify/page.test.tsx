@@ -51,9 +51,9 @@ describe('VerifyOtpPage', () => {
     expect(screen.getByRole('button', { name: /verify/i })).toBeInTheDocument()
   })
 
-  it('submits the code against the challenge and redirects to /charge on success', async () => {
+  it('submits the code against the challenge and redirects a signup to /charge on success', async () => {
     sessionStorage.setItem(CHALLENGE_SESSION_KEY, 'chal-1')
-    ;(useSearchParams as jest.Mock).mockReturnValue(paramsWith({ flow: 'login' }))
+    ;(useSearchParams as jest.Mock).mockReturnValue(paramsWith({ flow: 'signup' }))
     completeOtp.mockResolvedValue(undefined)
     const user = userEvent.setup()
     render(<VerifyOtpPage />)

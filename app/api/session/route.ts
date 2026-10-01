@@ -13,6 +13,13 @@ export async function POST(req: NextRequest) {
     merchantId?: string | null
   }
 
+export async function POST(request: NextRequest) {
+  const body = (await request.json()) as {
+    token?: string
+    userId?: string
+    merchantId?: string | null
+  }
+
   if (!body.token || !body.userId) {
     return NextResponse.json({ error: 'token and userId are required' }, { status: 400 })
   }
@@ -23,8 +30,8 @@ export async function POST(req: NextRequest) {
     merchantId: body.merchantId ?? null,
   })
 
-  const response = NextResponse.json({ ok: true })
-  response.cookies.set(COOKIE_NAME, payload, {
+  const cookieStore = await cookies()
+  cookieStore.set(COOKIE_NAME, payload, {
     httpOnly: true,
     secure: SECURE,
     sameSite: 'lax',

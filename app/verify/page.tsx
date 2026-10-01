@@ -54,8 +54,8 @@ function VerifyOtpForm() {
   const codeInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (ready && session) router.replace('/charge')
-  }, [ready, session, router])
+    if (ready && session) router.replace(flow === 'login' ? '/home' : '/charge')
+  }, [ready, session, router, flow])
 
   // Read challenge_id from sessionStorage on mount. If missing, the user
   // arrived here directly (bookmark, back button) — send them to login.
@@ -88,7 +88,7 @@ function VerifyOtpForm() {
       await completeOtp(challengeId, code.trim())
       // #638: clear the challenge_id from sessionStorage on success
       sessionStorage.removeItem(CHALLENGE_SESSION_KEY)
-      router.replace('/charge')
+      router.replace(flow === 'login' ? '/home' : '/charge')
     } catch (cause) {
       // #638: clear the challenge_id from sessionStorage on terminal failure
       if (cause instanceof ApiError && cause.code && TERMINAL_CODES.has(cause.code)) {

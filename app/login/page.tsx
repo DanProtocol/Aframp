@@ -25,7 +25,7 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    if (ready && session) router.replace('/charge')
+    if (ready && session) router.replace('/home')
   }, [ready, session, router])
 
   async function handleSubmit(event: React.FormEvent) {
@@ -49,7 +49,7 @@ export default function LoginPage() {
         sessionStorage.setItem(CHALLENGE_SESSION_KEY, result.challenge_id)
         router.push('/verify?flow=login')
       } else {
-        router.replace('/charge')
+        router.replace('/home')
       }
     } catch (cause) {
       // #637: handle 429 rate-limit separately with clear guidance

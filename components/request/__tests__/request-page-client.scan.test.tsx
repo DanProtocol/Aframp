@@ -101,7 +101,7 @@ describe('RequestPageClient', () => {
     await renderLoaded()
     const user = setupUser()
 
-    await user.click(screen.getByRole('button', { name: /copy/i }))
+    await user.click(screen.getByRole('button', { name: 'Copy' }))
 
     expect(writeText).toHaveBeenCalledWith(pendingRequest.address)
     expect(await screen.findByText(/copied!/i)).toBeInTheDocument()
@@ -113,7 +113,7 @@ describe('RequestPageClient', () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
 
-    await user.click(screen.getByRole('button', { name: /copy/i }))
+    await user.click(screen.getByRole('button', { name: 'Copy' }))
     expect(await screen.findByText(/copied!/i)).toBeInTheDocument()
 
     act(() => {

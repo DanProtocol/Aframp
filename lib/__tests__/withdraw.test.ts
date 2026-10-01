@@ -3,7 +3,6 @@ import {
   getWithdrawableAssets,
   getWithdrawalAssetConfig,
   WITHDRAWAL_ASSETS,
-  WITHDRAWAL_ASSET_CONFIG,
   validateWithdrawal,
 } from '@/lib/withdraw'
 import type { Balance } from '@/lib/api'
@@ -33,7 +32,6 @@ describe('getWithdrawableAssets', () => {
   ] as const)('%s uses its configured currency sub-unit precision', (asset, precision) => {
     expect(getWithdrawalAssetConfig(asset).minimumPrecisionStroops).toBe(precision)
   })
-})
 
   it('excludes non-withdrawable assets even with a positive balance', () => {
     const result = getWithdrawableAssets([
@@ -115,6 +113,12 @@ describe('validateWithdrawal', () => {
   it('requires an account number with the configured length', () => {
     expect(validateWithdrawal(validAmount, config, available, '044', '123')).toBe(
       'Account numbers are 10 digits.'
+    )
+  })
+
+  it('requires a digits-only account number', () => {
+    expect(validateWithdrawal(validAmount, config, available, '044', '01234abcde')).toBe(
+      'Account number must contain digits only.'
     )
   })
 

@@ -18,12 +18,11 @@ exports[`HomePageSkeleton matches snapshot 1`] = `
       </p>
     </div>
     <div
-      class="relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-10 w-36 rounded-full"
+      class="skeleton relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-10 w-36 rounded-full"
       data-slot="skeleton"
-      style="opacity: 0.75;"
     >
       <div
-        class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+        class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
       />
     </div>
   </header>
@@ -31,12 +30,11 @@ exports[`HomePageSkeleton matches snapshot 1`] = `
     class="mt-6"
   >
     <div
-      class="relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-24 w-full rounded-2xl"
+      class="skeleton relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-24 w-full rounded-2xl"
       data-slot="skeleton"
-      style="opacity: 0.75;"
     >
       <div
-        class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+        class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
       />
     </div>
   </div>
@@ -62,21 +60,19 @@ exports[`HomePageSkeleton matches snapshot 1`] = `
               class="flex items-baseline gap-2"
             >
               <div
-                class="relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-10 w-48"
+                class="skeleton relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-10 w-48"
                 data-slot="skeleton"
-                style="opacity: 0.75;"
               >
                 <div
-                  class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                  class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
                 />
               </div>
               <div
-                class="relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-12"
+                class="skeleton relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-12"
                 data-slot="skeleton"
-                style="opacity: 0.75;"
               >
                 <div
-                  class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                  class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
                 />
               </div>
             </div>
@@ -90,21 +86,19 @@ exports[`HomePageSkeleton matches snapshot 1`] = `
               class="flex items-baseline gap-2"
             >
               <div
-                class="relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-10 w-48"
+                class="skeleton relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-10 w-48"
                 data-slot="skeleton"
-                style="opacity: 0.75;"
               >
                 <div
-                  class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                  class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
                 />
               </div>
               <div
-                class="relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-12"
+                class="skeleton relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-12"
                 data-slot="skeleton"
-                style="opacity: 0.75;"
               >
                 <div
-                  class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                  class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
                 />
               </div>
             </div>
@@ -115,12 +109,11 @@ exports[`HomePageSkeleton matches snapshot 1`] = `
         class="mt-6"
       >
         <div
-          class="relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-20 w-full rounded-xl"
+          class="skeleton relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-20 w-full rounded-xl"
           data-slot="skeleton"
-          style="opacity: 0.75;"
         >
           <div
-            class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+            class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
           />
         </div>
       </div>
@@ -128,12 +121,11 @@ exports[`HomePageSkeleton matches snapshot 1`] = `
         class="mt-6"
       >
         <div
-          class="relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-32 w-full rounded-xl"
+          class="skeleton relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-32 w-full rounded-xl"
           data-slot="skeleton"
-          style="opacity: 0.75;"
         >
           <div
-            class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+            class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
           />
         </div>
       </div>
@@ -164,40 +156,36 @@ exports[`HomePageSkeleton matches snapshot 1`] = `
           class="mt-5 space-y-3"
         >
           <div
-            class="relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-10 w-full rounded-lg"
+            class="skeleton relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-10 w-full rounded-lg"
             data-slot="skeleton"
-            style="opacity: 0.75;"
           >
             <div
-              class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+              class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
             />
           </div>
           <div
-            class="relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-10 w-full rounded-lg"
+            class="skeleton relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-10 w-full rounded-lg"
             data-slot="skeleton"
-            style="opacity: 0.75;"
           >
             <div
-              class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+              class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
             />
           </div>
           <div
-            class="relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-10 w-full rounded-lg"
+            class="skeleton relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-10 w-full rounded-lg"
             data-slot="skeleton"
-            style="opacity: 0.75;"
           >
             <div
-              class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+              class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
             />
           </div>
         </div>
         <div
-          class="relative overflow-hidden bg-muted/40 dark:bg-muted/30 mt-5 h-12 w-full rounded-full"
+          class="skeleton relative overflow-hidden bg-muted/40 dark:bg-muted/30 mt-5 h-12 w-full rounded-full"
           data-slot="skeleton"
-          style="opacity: 0.75;"
         >
           <div
-            class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+            class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
           />
         </div>
       </section>
@@ -221,21 +209,19 @@ exports[`HomePageSkeleton matches snapshot 1`] = `
             class="flex items-baseline justify-between"
           >
             <div
-              class="relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-32"
+              class="skeleton relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-32"
               data-slot="skeleton"
-              style="opacity: 0.75;"
             >
               <div
-                class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
               />
             </div>
             <div
-              class="relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-20"
+              class="skeleton relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-20"
               data-slot="skeleton"
-              style="opacity: 0.75;"
             >
               <div
-                class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
               />
             </div>
           </div>
@@ -243,21 +229,19 @@ exports[`HomePageSkeleton matches snapshot 1`] = `
             class="flex items-baseline justify-between"
           >
             <div
-              class="relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-32"
+              class="skeleton relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-32"
               data-slot="skeleton"
-              style="opacity: 0.75;"
             >
               <div
-                class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
               />
             </div>
             <div
-              class="relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-20"
+              class="skeleton relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-20"
               data-slot="skeleton"
-              style="opacity: 0.75;"
             >
               <div
-                class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
               />
             </div>
           </div>
@@ -269,12 +253,11 @@ exports[`HomePageSkeleton matches snapshot 1`] = `
     class="mt-5"
   >
     <div
-      class="relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-64 w-full rounded-2xl"
+      class="skeleton relative overflow-hidden bg-muted/40 dark:bg-muted/30 h-64 w-full rounded-2xl"
       data-slot="skeleton"
-      style="opacity: 0.75;"
     >
       <div
-        class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+        class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
       />
     </div>
   </div>

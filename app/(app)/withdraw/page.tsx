@@ -33,7 +33,7 @@ import {
   type Withdrawal,
   type WithdrawalStatus,
 } from '@/lib/api'
-import { formatStroops, isWholeKobo, parseAmountToStroops } from '@/lib/money'
+import { formatStroops, parseAmountToStroops } from '@/lib/money'
 import { useAuthenticatedSession } from '@/components/session-provider'
 import {
   getBankOptions,
@@ -178,7 +178,7 @@ export default function WithdrawPage() {
     }
   }, [withdrawableAssets, asset, selectAsset])
 
-  async function submit(event: React.FormEvent) {
+  function submit(event: React.FormEvent) {
     event.preventDefault()
     const problem = validateWithdrawal(stroops, config, available, bankCode, accountNumber)
     if (problem) {

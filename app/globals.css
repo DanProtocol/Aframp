@@ -122,6 +122,41 @@
   animation: border-beam 8s linear infinite;
 }
 
+/* Loading skeletons: a soft pulse with a light sweep across it. */
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes skeleton-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton {
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton-sweep {
+  animation: skeleton-sweep 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .skeleton-sweep {
+    animation: none;
+  }
+}
+
 /* Shimmer animation for CTA */
 @keyframes shimmer {
   0% {

@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useSession } from '@/components/session-provider'
 import { ApiError, isOffline } from '@/lib/api'
-import { CHALLENGE_SESSION_KEY } from '@/app/login/page'
+import { CHALLENGE_SESSION_KEY } from '@/lib/otp-challenge'
 
 const CODE_LENGTH = 6
 

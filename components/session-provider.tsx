@@ -88,7 +88,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const persist = useCallback(async (next: Session) => {
     setSession(next)
-    await persistCookie(next)
+    try {
+      await persistCookie(next)
+    } catch {
+      // Best-effort: the session still works for this tab if the cookie write fails.
+    }
   }, [])
 
   const signIn = useCallback(

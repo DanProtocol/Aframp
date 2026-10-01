@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ProfilePage from './page'
 import { useAuthenticatedSession, useSession } from '@/components/session-provider'
@@ -235,11 +235,10 @@ describe('ProfilePage - Account deletion confirmation', () => {
       expect(screen.getByText(/delete your account\?/i)).toBeInTheDocument()
     })
 
-    // Verify warning messages are present
-    expect(screen.getByText(/this action cannot be undone/i)).toBeInTheDocument()
-    expect(
-      screen.getByText(/permanently delete your merchant account/i)
-    ).toBeInTheDocument()
+    // Verify warning messages are present in the dialog
+    const dialog = within(screen.getByRole('alertdialog'))
+    expect(dialog.getByText(/this action cannot be undone/i)).toBeInTheDocument()
+    expect(dialog.getByText(/permanently delete your merchant account/i)).toBeInTheDocument()
   })
 
   it('prompts user to type their specific email address', async () => {
@@ -258,7 +257,8 @@ describe('ProfilePage - Account deletion confirmation', () => {
     })
 
     // Verify the prompt shows their actual email
-    expect(screen.getByText(new RegExp(mockMe.email))).toBeInTheDocument()
+    const dialog = within(screen.getByRole('alertdialog'))
+    expect(dialog.getByText(new RegExp(mockMe.email))).toBeInTheDocument()
     expect(screen.getByPlaceholderText(mockMe.email)).toBeInTheDocument()
   })
 })

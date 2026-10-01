@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import SignupPage from './page'
 import { useSession } from '@/components/session-provider'
 import { useRouter } from 'next/navigation'
-import { CHALLENGE_SESSION_KEY } from '@/app/login/page'
+import { CHALLENGE_SESSION_KEY } from '@/lib/otp-challenge'
 
 jest.mock('@/components/session-provider', () => ({
   useSession: jest.fn(),
@@ -62,7 +62,8 @@ describe('SignupPage', () => {
     await user.type(screen.getByLabelText(/business name/i), 'Acme Pay')
     await user.type(screen.getByLabelText(/email/i), 'hello@acme.com')
     await user.type(screen.getByLabelText(/phone number/i), '08011122233')
-    await user.type(screen.getByLabelText(/password/i), 'verysecret')
+    await user.type(screen.getByLabelText(/^password$/i), 'verysecret')
+    await user.type(screen.getByLabelText(/confirm password/i), 'verysecret')
     await user.click(screen.getByRole('button', { name: /create account/i }))
 
     expect(signUp).toHaveBeenCalledWith('hello@acme.com', 'verysecret', 'Acme Pay', '08011122233')
@@ -81,7 +82,8 @@ describe('SignupPage', () => {
     await user.type(screen.getByLabelText(/business name/i), 'Acme Pay')
     await user.type(screen.getByLabelText(/email/i), 'hello@acme.com')
     await user.type(screen.getByLabelText(/phone number/i), '08011122233')
-    await user.type(screen.getByLabelText(/password/i), 'verysecret')
+    await user.type(screen.getByLabelText(/^password$/i), 'verysecret')
+    await user.type(screen.getByLabelText(/confirm password/i), 'verysecret')
     await user.click(screen.getByRole('button', { name: /create account/i }))
 
     expect(await screen.findByText('Email already in use')).toBeInTheDocument()

@@ -4,7 +4,7 @@ import VerifyOtpPage from './page'
 import { useSession } from '@/components/session-provider'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ApiError } from '@/lib/api'
-import { CHALLENGE_SESSION_KEY } from '@/app/login/page'
+import { CHALLENGE_SESSION_KEY } from '@/lib/otp-challenge'
 
 jest.mock('@/components/session-provider', () => ({
   useSession: jest.fn(),

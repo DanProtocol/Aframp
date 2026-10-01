@@ -1,228 +1,190 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useRouter } from 'next/navigation'
 import { RequestPageClient } from '../request-page-client'
+import { api, type PaymentRequest } from '@/lib/api'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
-// Mock dependencies
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }))
 
-jest.mock('react-qr-code', () => ({
-  __esModule: true,
-  default: ({ value }: { value: string }) => (
-    <div data-testid="qr-code" data-value={value}>
-      QR Code
-    </div>
-  ),
+jest.mock('@/hooks/use-media-query', () => ({
+  useMediaQuery: jest.fn(),
 }))
 
+jest.mock('@/lib/api', () => ({
+  api: { getPaymentRequest: jest.fn() },
+  ApiError: class ApiError extends Error {
+    constructor(
+      message: string,
+      public status: number
+    ) {
+      super(message)
+    }
+  },
+}))
+
+jest.mock('react-qr-code', () => ({
+  __esModule: true,
+  default: ({ value }: { value: string }) => <div data-testid="qr-code">{value}</div>,
+}))
+
+// The scanner hands back whatever address the test sets here.
+let mockScanResult = ''
 jest.mock('@/components/send/qr-scanner', () => ({
   QRScanner: ({ onScan, onClose }: { onScan: (address: string) => void; onClose: () => void }) => (
     <div data-testid="qr-scanner">
-      <button onClick={() => onScan('GTEST123SCANNEDADDRESS')}>Scan Address</button>
-      <button onClick={onClose}>Close Scanner</button>
+      <button onClick={() => onScan(mockScanResult)}>Scan address</button>
+      <button onClick={onClose}>Close scanner</button>
     </div>
   ),
 }))
 
-// Mock clipboard API
-Object.assign(navigator, {
-  clipboard: {
-    writeText: jest.fn(),
-  },
+const VALID_ADDRESS = 'G' + 'A'.repeat(55)
+
+const pendingRequest: PaymentRequest = {
+  id: 'req-123',
+  merchant_id: 'merchant-1',
+  address: 'GPAYMENTADDRESS1234567890',
+  network: 'stellar',
+  amount_stroops: 1_000_000_000n,
+  asset: 'USDC',
+  memo: 'Invoice 42',
+  status: 'pending',
+  expires_at: new Date(Date.now() + 600_000).toISOString(),
+  created_at: new Date().toISOString(),
+  sep7_uri: 'web+stellar:pay?destination=GPAYMENTADDRESS1234567890&amount=100',
+}
+
+const back = jest.fn()
+const writeText = jest.fn()
+
+function setupUser() {
+  const user = userEvent.setup()
+  // userEvent.setup() installs its own clipboard stub; put ours back.
+  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+  return user
+}
+
+async function renderLoaded({ mobile = true } = {}) {
+  ;(useMediaQuery as jest.Mock).mockReturnValue(mobile)
+  render(<RequestPageClient requestId="req-123" />)
+  await screen.findByText('Payment address')
+}
+
+beforeEach(() => {
+  jest.clearAllMocks()
+  mockScanResult = VALID_ADDRESS
+  writeText.mockResolvedValue(undefined)
+  ;(useRouter as jest.Mock).mockReturnValue({ back })
+  ;(api.getPaymentRequest as jest.Mock).mockResolvedValue(pendingRequest)
 })
 
 describe('RequestPageClient', () => {
-  const mockBack = jest.fn()
+  it('loads the request by id and shows its details', async () => {
+    await renderLoaded()
 
-  beforeEach(() => {
-    jest.clearAllMocks()
-    ;(useRouter as jest.Mock).mockReturnValue({ back: mockBack })
-    ;(navigator.clipboard.writeText as jest.Mock).mockResolvedValue(undefined)
-
-    // Mock window.innerWidth for mobile detection
-    Object.defineProperty(window, 'innerWidth', {
-      writable: true,
-      configurable: true,
-      value: 768,
-    })
-  })
-
-  it('renders payment request details', () => {
-    render(<RequestPageClient requestId="req-123" />)
-
-    expect(screen.getByText(/payment request/i)).toBeInTheDocument()
+    expect(api.getPaymentRequest).toHaveBeenCalledWith('req-123', expect.anything())
+    expect(screen.getByText('Payment Request')).toBeInTheDocument()
     expect(screen.getByText('100')).toBeInTheDocument()
-    expect(screen.getByText('USD')).toBeInTheDocument()
-    expect(screen.getByText('John Doe')).toBeInTheDocument()
-    expect(screen.getByText('Payment for consulting services')).toBeInTheDocument()
+    expect(screen.getByText('Invoice 42')).toBeInTheDocument()
+    expect(screen.getByText(pendingRequest.address)).toBeInTheDocument()
   })
 
-  it('displays QR code with correct value', () => {
-    render(<RequestPageClient requestId="req-123" />)
-
-    const qrCode = screen.getByTestId('qr-code')
-    expect(qrCode).toBeInTheDocument()
-    expect(qrCode).toHaveAttribute(
-      'data-value',
-      expect.stringContaining('stellar:GBSN2ZJBRFWTQHWRJQE4GKDJJDSGPVTLQNQCQX7QR5W5VKHNHQH')
-    )
+  it('encodes the SEP-7 URI in the QR code', async () => {
+    await renderLoaded()
+    expect(screen.getByTestId('qr-code')).toHaveTextContent(pendingRequest.sep7_uri!)
   })
 
-  it('copies wallet address to clipboard', async () => {
-    const user = userEvent.setup()
-    render(<RequestPageClient requestId="req-123" />)
+  it('copies the payment address and shows feedback', async () => {
+    await renderLoaded()
+    const user = setupUser()
 
-    const copyButton = screen.getByRole('button', { name: /copy/i })
-    await user.click(copyButton)
+    await user.click(screen.getByRole('button', { name: /copy/i }))
 
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      'GBSN2ZJBRFWTQHWRJQE4GKDJJDSGPVTLQNQCQX7QR5W5VKHNHQH'
-    )
-
-    await waitFor(() => {
-      expect(screen.getByText(/copied!/i)).toBeInTheDocument()
-    })
+    expect(writeText).toHaveBeenCalledWith(pendingRequest.address)
+    expect(await screen.findByText(/copied!/i)).toBeInTheDocument()
   })
 
-  it('resets copied state after delay', async () => {
+  it('resets the copied state after two seconds', async () => {
+    await renderLoaded()
     jest.useFakeTimers()
-    const user = userEvent.setup({ delay: null })
-    render(<RequestPageClient requestId="req-123" />)
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
 
-    const copyButton = screen.getByRole('button', { name: /copy/i })
-    await user.click(copyButton)
+    await user.click(screen.getByRole('button', { name: /copy/i }))
+    expect(await screen.findByText(/copied!/i)).toBeInTheDocument()
 
-    await waitFor(() => {
-      expect(screen.getByText(/copied!/i)).toBeInTheDocument()
+    act(() => {
+      jest.advanceTimersByTime(2000)
     })
-
-    jest.advanceTimersByTime(2000)
-
-    await waitFor(() => {
-      expect(screen.queryByText(/copied!/i)).not.toBeInTheDocument()
-      expect(screen.getByText(/copy/i)).toBeInTheDocument()
-    })
-
+    await waitFor(() => expect(screen.queryByText(/copied!/i)).not.toBeInTheDocument())
     jest.useRealTimers()
   })
 
-  it('navigates back when back button is clicked', async () => {
-    const user = userEvent.setup()
-    render(<RequestPageClient requestId="req-123" />)
+  it('navigates back from the header', async () => {
+    await renderLoaded()
+    const user = setupUser()
 
-    const backButton = screen.getAllByRole('button')[0] // First button is the back button
-    await user.click(backButton)
+    await user.click(screen.getAllByRole('button')[0])
 
-    expect(mockBack).toHaveBeenCalledTimes(1)
+    expect(back).toHaveBeenCalled()
   })
 
-  describe('Mobile functionality', () => {
-    beforeEach(() => {
-      Object.defineProperty(window, 'innerWidth', {
-        writable: true,
-        configurable: true,
-        value: 500, // Mobile width
-      })
-    })
+  describe('on mobile', () => {
+    it('opens and closes the QR scanner', async () => {
+      await renderLoaded({ mobile: true })
+      const user = setupUser()
 
-    it('shows camera button on mobile', () => {
-      render(<RequestPageClient requestId="req-123" />)
-
-      expect(screen.getByRole('button', { name: /pay with camera/i })).toBeInTheDocument()
-    })
-
-    it('opens QR scanner when camera button is clicked', async () => {
-      const user = userEvent.setup()
-      render(<RequestPageClient requestId="req-123" />)
-
-      const cameraButton = screen.getByRole('button', { name: /pay with camera/i })
-      await user.click(cameraButton)
-
+      await user.click(screen.getByRole('button', { name: /pay with camera/i }))
       expect(screen.getByTestId('qr-scanner')).toBeInTheDocument()
-    })
 
-    it('handles scanned address', async () => {
-      const user = userEvent.setup()
-      render(<RequestPageClient requestId="req-123" />)
-
-      const cameraButton = screen.getByRole('button', { name: /pay with camera/i })
-      await user.click(cameraButton)
-
-      const scanButton = screen.getByRole('button', { name: /scan address/i })
-      await user.click(scanButton)
-
-      await waitFor(() => {
-        expect(screen.getByText(/payment detected/i)).toBeInTheDocument()
-        expect(screen.getByText(/GTEST123SC...EDADDRESS/i)).toBeInTheDocument()
-      })
-
-      // Scanner should be closed
+      await user.click(screen.getByRole('button', { name: /close scanner/i }))
       expect(screen.queryByTestId('qr-scanner')).not.toBeInTheDocument()
     })
 
-    it('closes scanner when close button is clicked', async () => {
-      const user = userEvent.setup()
-      render(<RequestPageClient requestId="req-123" />)
+    it('rejects a scanned value that is not a Stellar address', async () => {
+      mockScanResult = 'not-a-stellar-address'
+      await renderLoaded({ mobile: true })
+      const user = setupUser()
 
-      const cameraButton = screen.getByRole('button', { name: /pay with camera/i })
-      await user.click(cameraButton)
+      await user.click(screen.getByRole('button', { name: /pay with camera/i }))
+      await user.click(screen.getByRole('button', { name: /scan address/i }))
 
-      const closeButton = screen.getByRole('button', { name: /close scanner/i })
-      await user.click(closeButton)
+      expect(screen.getByText('Invalid Stellar address format')).toBeInTheDocument()
+      expect(screen.queryByText(/payment detected/i)).not.toBeInTheDocument()
+    })
 
-      await waitFor(() => {
-        expect(screen.queryByTestId('qr-scanner')).not.toBeInTheDocument()
-      })
+    it('accepts a valid scan, closes the scanner and shows the payer', async () => {
+      await renderLoaded({ mobile: true })
+      const user = setupUser()
+
+      await user.click(screen.getByRole('button', { name: /pay with camera/i }))
+      await user.click(screen.getByRole('button', { name: /scan address/i }))
+
+      expect(screen.queryByTestId('qr-scanner')).not.toBeInTheDocument()
+      expect(screen.getByText(/payment detected/i)).toBeInTheDocument()
+      expect(screen.getByText(/GAAAAAAAAA\.\.\.AAAAAAAAAA/)).toBeInTheDocument()
+      expect(screen.queryByText('Error')).not.toBeInTheDocument()
+    })
+
+    it('disables the camera button while the scan is being confirmed', async () => {
+      await renderLoaded({ mobile: true })
+      const user = setupUser()
+
+      await user.click(screen.getByRole('button', { name: /pay with camera/i }))
+      await user.click(screen.getByRole('button', { name: /scan address/i }))
+
+      expect(screen.getByRole('button', { name: /confirming/i })).toBeDisabled()
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /pay with camera/i })).toBeEnabled()
+      )
     })
   })
 
-  describe('Desktop functionality', () => {
-    beforeEach(() => {
-      Object.defineProperty(window, 'innerWidth', {
-        writable: true,
-        configurable: true,
-        value: 1024, // Desktop width
-      })
-    })
-
-    it('does not show camera button on desktop', () => {
-      render(<RequestPageClient requestId="req-123" />)
-
-      expect(screen.queryByRole('button', { name: /pay with camera/i })).not.toBeInTheDocument()
-    })
-  })
-
-  describe('TODO: Backend confirmation', () => {
-    it('marks the handleScanPayment TODO as present', async () => {
-      // This test documents that handleScanPayment has a TODO for backend confirmation
-      // Once the TODO is implemented, this test should be updated to verify the actual behavior
-      const user = userEvent.setup()
-      
-      Object.defineProperty(window, 'innerWidth', {
-        writable: true,
-        configurable: true,
-        value: 500,
-      })
-
-      render(<RequestPageClient requestId="req-123" />)
-
-      const cameraButton = screen.getByRole('button', { name: /pay with camera/i })
-      await user.click(cameraButton)
-
-      const scanButton = screen.getByRole('button', { name: /scan address/i })
-      await user.click(scanButton)
-
-      // Currently only stores the scanned address locally
-      // Future implementation should:
-      // 1. Call api.confirmScannedPayment(requestId, address, token)
-      // 2. Show success/error feedback based on response
-      // 3. Update UI accordingly
-      
-      await waitFor(() => {
-        expect(screen.getByText(/payment detected/i)).toBeInTheDocument()
-      })
-    })
+  it('hides the camera button on desktop', async () => {
+    await renderLoaded({ mobile: false })
+    expect(screen.queryByRole('button', { name: /pay with camera/i })).not.toBeInTheDocument()
   })
 })

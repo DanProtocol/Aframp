@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useSession } from '@/components/session-provider'
 import { isOffline } from '@/lib/api'
-import { CHALLENGE_SESSION_KEY } from '@/app/login/page'
+import { CHALLENGE_SESSION_KEY } from '@/lib/otp-challenge'
 
 import { getPasswordStrength, isCommonPassword } from '@/lib/password-strength'
 

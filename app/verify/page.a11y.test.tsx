@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import VerifyOtpPage from './page'
 import { useSession } from '@/components/session-provider'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { CHALLENGE_SESSION_KEY } from '@/lib/otp-challenge'
 import { ApiError } from '@/lib/api'
 
 jest.mock('@/components/session-provider', () => ({
@@ -25,6 +26,7 @@ describe('VerifyOtpPage', () => {
 
   beforeEach(() => {
     replace.mockReset()
+    sessionStorage.clear()
     completeOtp.mockReset()
     ;(useRouter as jest.Mock).mockReturnValue({ replace })
     ;(useSession as jest.Mock).mockReturnValue({
@@ -42,7 +44,9 @@ describe('VerifyOtpPage', () => {
   })
 
   it('renders an accessible code form when a challenge_id is present', async () => {
-    ;(useSearchParams as jest.Mock).mockReturnValue(paramsWith({ challenge_id: 'chal-1', flow: 'login' }))
+    sessionStorage.setItem(CHALLENGE_SESSION_KEY, 'chal-1')
+
+    ;(useSearchParams as jest.Mock).mockReturnValue(paramsWith({ flow: 'login' }))
     const { container } = render(<VerifyOtpPage />)
 
     expect(screen.getByLabelText(/6-digit code/i)).toBeInTheDocument()
@@ -50,8 +54,10 @@ describe('VerifyOtpPage', () => {
     expect(await axe(container)).toHaveNoViolations()
   })
 
-  it('submits the code against the challenge and redirects to /charge on success', async () => {
-    ;(useSearchParams as jest.Mock).mockReturnValue(paramsWith({ challenge_id: 'chal-1', flow: 'login' }))
+  it('submits the code against the challenge and redirects a signup to /charge on success', async () => {
+    sessionStorage.setItem(CHALLENGE_SESSION_KEY, 'chal-1')
+
+    ;(useSearchParams as jest.Mock).mockReturnValue(paramsWith({ flow: 'signup' }))
     completeOtp.mockResolvedValue(undefined)
     const user = userEvent.setup()
     render(<VerifyOtpPage />)
@@ -64,7 +70,9 @@ describe('VerifyOtpPage', () => {
   })
 
   it('lets the user retry on an incorrect code without losing the challenge', async () => {
-    ;(useSearchParams as jest.Mock).mockReturnValue(paramsWith({ challenge_id: 'chal-1', flow: 'login' }))
+    sessionStorage.setItem(CHALLENGE_SESSION_KEY, 'chal-1')
+
+    ;(useSearchParams as jest.Mock).mockReturnValue(paramsWith({ flow: 'login' }))
     completeOtp.mockRejectedValue(new ApiError('incorrect code', 400, 'OTP_INVALID'))
     const user = userEvent.setup()
     render(<VerifyOtpPage />)
@@ -78,7 +86,9 @@ describe('VerifyOtpPage', () => {
   })
 
   it('shows a "start over" link instead of a retry when the challenge is locked', async () => {
-    ;(useSearchParams as jest.Mock).mockReturnValue(paramsWith({ challenge_id: 'chal-1', flow: 'signup' }))
+    sessionStorage.setItem(CHALLENGE_SESSION_KEY, 'chal-1')
+
+    ;(useSearchParams as jest.Mock).mockReturnValue(paramsWith({ flow: 'signup' }))
     completeOtp.mockRejectedValue(new ApiError('too many incorrect attempts', 400, 'OTP_LOCKED'))
     const user = userEvent.setup()
     render(<VerifyOtpPage />)

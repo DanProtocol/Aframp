@@ -37,7 +37,7 @@ describe('getWithdrawableAssets', () => {
       balance('cKES', 5_000_000_000n),
       balance('cGHS', 1_000_000_000n),
     ])
-    expect(result.map((b) => b.asset).sort()).toEqual([...WITHDRAWAL_ASSETS].sort())
+    expect([...result].sort()).toEqual([...WITHDRAWAL_ASSETS].sort())
   })
 
   it('keeps only the withdrawable assets from a mixed balance set', () => {
@@ -47,7 +47,7 @@ describe('getWithdrawableAssets', () => {
       balance('cKES', 0n),
       balance('USDC', 10_000_000_000n),
     ])
-    expect(result.map((b) => b.asset)).toEqual(['cNGN'])
+    expect(result).toEqual(['cNGN'])
   })
 })
 

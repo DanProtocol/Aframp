@@ -418,7 +418,7 @@ export default function WithdrawPage() {
                 >
                   <div>
                     <p className="font-medium">
-                      {formatStroops(withdrawal.amount)} {withdrawal.asset}
+                      {formatStroops(withdrawal.amount_stroops)} {withdrawal.asset}
                     </p>
                     <p className="text-dim text-xs">
                       {new Date(withdrawal.created_at).toLocaleString()}

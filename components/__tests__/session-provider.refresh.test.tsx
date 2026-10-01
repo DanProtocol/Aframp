@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { SessionProvider, useSession } from '../session-provider'
-import { api, setUnauthorizedHandler, type Me } from '@/lib/api'
+import { setUnauthorizedHandler, type Me } from '@/lib/api'
 
 const fetchMock = jest.fn()
 const originalFetch = globalThis.fetch
@@ -153,7 +153,7 @@ describe('SessionProvider', () => {
       </SessionProvider>
     )
 
-    const eventListener = jest.fn((e) => {
+    const eventListener = jest.fn((_e) => {
       // The event should not fire for 401 errors - they should throw
       window.removeEventListener('refresh-result', eventListener as EventListener)
     })

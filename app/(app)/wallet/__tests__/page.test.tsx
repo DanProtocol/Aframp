@@ -71,7 +71,7 @@ describe('WalletPage', () => {
   ]
 
   describe('Loading state', () => {
-    it('shows loading spinner initially', async () => {
+    it('shows loading spinner initially', () => {
       ;(api.getWallet as jest.Mock).mockImplementation(() => new Promise(() => {}))
       ;(api.getBalances as jest.Mock).mockImplementation(() => new Promise(() => {}))
 

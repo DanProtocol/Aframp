@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { Suspense } from 'react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import PaymentRequestPage from '../page'
 import { api, ApiError, type PaymentRequest } from '@/lib/api'
 
@@ -21,6 +22,20 @@ jest.mock('react-qr-code', () => ({
 }))
 
 const mockGetPaymentRequest = api.getPaymentRequest as jest.Mock
+
+/** The page unwraps `params` with React's use(), which suspends on first render. */
+async function renderPage(id = 'request-123') {
+  let result!: ReturnType<typeof render>
+  await act(async () => {
+    result = render(
+      <Suspense fallback={null}>
+        <PaymentRequestPage params={Promise.resolve({ id })} />
+      </Suspense>
+    )
+    await Promise.resolve()
+  })
+  return result
+}
 
 const createMockRequest = (overrides: Partial<PaymentRequest> = {}): PaymentRequest => ({
   id: 'request-123',
@@ -45,12 +60,12 @@ describe('PaymentRequestPage', () => {
   })
 
   describe('loading state', () => {
-    it('shows loading spinner while fetching payment request', () => {
+    it('shows loading spinner while fetching payment request', async () => {
       mockGetPaymentRequest.mockImplementation(
         () => new Promise(() => {}) // Never resolves
       )
 
-      render(<PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />)
+      await renderPage()
 
       expect(screen.getByTestId('loading-spinner')).toBeInTheDocument()
     })
@@ -58,7 +73,7 @@ describe('PaymentRequestPage', () => {
     it('loads and displays the payment request', async () => {
       mockGetPaymentRequest.mockResolvedValue(createMockRequest())
 
-      render(<PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />)
+      await renderPage()
 
       expect(await screen.findByText('2.5 XLM')).toBeInTheDocument()
       expect(screen.getByText('GTEST123')).toBeInTheDocument()
@@ -70,7 +85,7 @@ describe('PaymentRequestPage', () => {
     it('displays QR code for pending request with sep7_uri', async () => {
       mockGetPaymentRequest.mockResolvedValue(createMockRequest())
 
-      render(<PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />)
+      await renderPage()
 
       expect(await screen.findByTestId('qr-code')).toBeInTheDocument()
       expect(screen.getByText(/Ask your customer to scan/i)).toBeInTheDocument()
@@ -81,7 +96,7 @@ describe('PaymentRequestPage', () => {
         createMockRequest({ sep7_uri: null })
       )
 
-      render(<PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />)
+      await renderPage()
 
       expect(
         await screen.findByText(/No scannable code for XLM yet/i)
@@ -94,7 +109,7 @@ describe('PaymentRequestPage', () => {
         createMockRequest({ expires_at: expiresAt })
       )
 
-      render(<PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />)
+      await renderPage()
 
       expect(await screen.findByText(/1:0[45]/)).toBeInTheDocument()
     })
@@ -103,7 +118,7 @@ describe('PaymentRequestPage', () => {
       jest.useFakeTimers()
       mockGetPaymentRequest.mockResolvedValue(createMockRequest())
 
-      render(<PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />)
+      await renderPage()
 
       await waitFor(() => {
         expect(mockGetPaymentRequest).toHaveBeenCalledTimes(1)
@@ -132,7 +147,7 @@ describe('PaymentRequestPage', () => {
         .mockResolvedValueOnce(createMockRequest())
         .mockResolvedValueOnce(createMockRequest({ status: 'paid' }))
 
-      render(<PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />)
+      await renderPage()
 
       await waitFor(() => {
         expect(mockGetPaymentRequest).toHaveBeenCalledTimes(1)
@@ -174,9 +189,7 @@ describe('PaymentRequestPage', () => {
         }
       )
 
-      const { unmount } = render(
-        <PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />
-      )
+      const { unmount } = await renderPage()
 
       await waitFor(() => {
         expect(mockGetPaymentRequest).toHaveBeenCalledTimes(1)
@@ -203,7 +216,7 @@ describe('PaymentRequestPage', () => {
         })
       )
 
-      render(<PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />)
+      await renderPage()
 
       expect(await screen.findByText(/1 \/ 2\.5 XLM/)).toBeInTheDocument()
     })
@@ -215,7 +228,7 @@ describe('PaymentRequestPage', () => {
         createMockRequest({ status: 'paid' })
       )
 
-      render(<PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />)
+      await renderPage()
 
       expect(await screen.findByText('Payment received')).toBeInTheDocument()
       expect(screen.getByText('2.5 XLM')).toBeInTheDocument()
@@ -232,7 +245,7 @@ describe('PaymentRequestPage', () => {
         .mockResolvedValueOnce(createMockRequest({ status: 'pending' }))
         .mockResolvedValueOnce(createMockRequest({ status: 'paid' }))
 
-      render(<PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />)
+      await renderPage()
 
       expect(await screen.findByText(/Ask your customer to scan/i)).toBeInTheDocument()
 
@@ -250,7 +263,7 @@ describe('PaymentRequestPage', () => {
         createMockRequest({ status: 'expired' })
       )
 
-      render(<PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />)
+      await renderPage()
 
       expect(await screen.findByText('Charge expired')).toBeInTheDocument()
       expect(
@@ -267,7 +280,7 @@ describe('PaymentRequestPage', () => {
     it('shows error screen when payment request cannot be loaded', async () => {
       mockGetPaymentRequest.mockRejectedValue(new Error('Payment request not found'))
 
-      render(<PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />)
+      await renderPage()
 
       expect(
         await screen.findByText('Payment request not found')
@@ -277,7 +290,7 @@ describe('PaymentRequestPage', () => {
     it('shows backend-down message for network errors', async () => {
       mockGetPaymentRequest.mockRejectedValue(new ApiError('Network error', 0))
 
-      render(<PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />)
+      await renderPage()
 
       expect(
         await screen.findByText(/can't connect to the payment server/i)
@@ -291,7 +304,7 @@ describe('PaymentRequestPage', () => {
         .mockResolvedValueOnce(createMockRequest())
         .mockRejectedValueOnce(new ApiError('Network error', 0))
 
-      render(<PaymentRequestPage params={Promise.resolve({ id: 'request-123' })} />)
+      await renderPage()
 
       // Initial load succeeds
       expect(await screen.findByText('2.5 XLM')).toBeInTheDocument()

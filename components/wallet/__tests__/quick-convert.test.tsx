@@ -7,13 +7,15 @@ function mockRequest(overrides: Partial<PaymentRequest> = {}): PaymentRequest {
   return {
     id: 'req1',
     merchant_id: 'm1',
+    address: 'GTEST123',
+    network: 'stellar',
     amount_stroops: 1000000000n,
     asset: 'XLM',
     status: 'pending',
-    memo: null,
+    memo: 'memo',
     created_at: new Date().toISOString(),
     expires_at: new Date(Date.now() + 3600000).toISOString(),
-    paid_at: null,
+    sep7_uri: null,
     ...overrides,
   }
 }

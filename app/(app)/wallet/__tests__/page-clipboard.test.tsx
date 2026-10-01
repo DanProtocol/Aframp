@@ -135,7 +135,6 @@ describe('WalletPage - Clipboard functionality', () => {
   })
 
   it('does not attempt to copy when wallet is not loaded', async () => {
-    const user = userEvent.setup()
     const mockWriteText = jest.fn()
     Object.assign(navigator, {
       clipboard: {

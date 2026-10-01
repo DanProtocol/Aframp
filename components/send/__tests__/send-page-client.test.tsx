@@ -162,7 +162,7 @@ describe('SendPageClient', () => {
     expect(screen.getByText(/Balance: 500 USDC/)).toBeInTheDocument()
   })
 
-  it('adds a contact to localStorage after a successful send', async () => {
+  it('adds a contact to localStorage after a successful send', () => {
     jest.useFakeTimers()
 
     render(<SendPageClient balances={mockBalances} />)

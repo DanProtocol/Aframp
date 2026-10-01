@@ -1,5 +1,4 @@
-import { render, screen, waitFor, act } from '@testing-library/react'
-import { ApiError } from '@/lib/api'
+import { render, act } from '@testing-library/react'
 
 // Mock the entire api module
 const mockGetWallet = jest.fn()
@@ -56,7 +55,7 @@ describe('WalletPage abort on unmount', () => {
 
     // Now resolve after unmount — should not cause React state update warnings
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
-    await act(async () => {
+    await act(() => {
       resolveWallet({ id: 'w1', address: 'GTEST', merchant_id: 'm1', network: 'testnet', created_at: '' })
     })
     // No "Can't perform state update on unmounted component" error

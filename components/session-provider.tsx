@@ -76,9 +76,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // /api/session (GET). This replaces the localStorage read.
   useEffect(() => {
     fetch('/api/session')
-      .then((res) => res.json() as Promise<{ session: Session | null }>)
-      .then(({ session: stored }) => {
-        if (stored) setSession(stored)
+      .then((res) => res.json() as Promise<Session | null>)
+      .then((stored) => {
+        if (stored?.token) setSession(stored)
       })
       .catch(() => {
         // Network error on startup — start with no session.

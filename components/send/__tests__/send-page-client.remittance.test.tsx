@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { SendPageClient } from '../send-page-client'
 import { useRouter } from 'next/navigation'
@@ -29,7 +29,7 @@ jest.mock('@/lib/api', () => ({
 }))
 
 /** Navigate the UI from the initial recipient step through to the confirm step. */
-async function navigateToConfirm(address: string, amount: string) {
+function navigateToConfirm(address: string, amount: string) {
   // Step 1 → recipient
   fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
     target: { value: address },
@@ -265,7 +265,7 @@ describe('SendPageClient', () => {
 
   // ── handleSend: guard clauses ──────────────────────────────────────────────
 
-  it('does not call api.createRemittance when no recipient address is set', async () => {
+  it('does not call api.createRemittance when no recipient address is set', () => {
     render(<SendPageClient />)
 
     // Jump straight to amount step without a valid recipient shouldn't be possible

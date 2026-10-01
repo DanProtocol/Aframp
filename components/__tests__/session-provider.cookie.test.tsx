@@ -31,13 +31,13 @@ describe('SessionProvider', () => {
   it('does not write any token to localStorage after sign-in', async () => {
     // /api/session GET — no existing session
     fetchMock.mockResolvedValueOnce({
-      json: async () => null,
+      json: () => Promise.resolve(null),
     } as Response)
 
     // api.login — mock is hoisted via jest.mock below
     // /api/session POST — cookie persisted server-side
     fetchMock.mockResolvedValueOnce({
-      json: async () => ({ ok: true }),
+      json: () => Promise.resolve({ ok: true }),
     } as Response)
 
     render(
@@ -63,7 +63,7 @@ describe('SessionProvider', () => {
 
     // /api/session GET returns a fresh cookie-based session
     fetchMock.mockResolvedValueOnce({
-      json: async () => ({ token: 'cookie-token', userId: 'u2', merchantId: null }),
+      json: () => Promise.resolve({ token: 'cookie-token', userId: 'u2', merchantId: null }),
     } as Response)
 
     render(

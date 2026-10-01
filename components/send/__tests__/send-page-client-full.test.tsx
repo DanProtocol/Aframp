@@ -1,5 +1,4 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
 import { SendPageClient } from '../send-page-client'
 import { useRouter } from 'next/navigation'
@@ -63,7 +62,7 @@ describe('SendPageClient - Complete Flow Tests', () => {
       })
     })
 
-    it('numpad correctly builds amount string', async () => {
+    it('numpad correctly builds amount string', () => {
       fireEvent.click(screen.getByRole('button', { name: '1' }))
       fireEvent.click(screen.getByRole('button', { name: '2' }))
       fireEvent.click(screen.getByRole('button', { name: '3' }))
@@ -71,7 +70,7 @@ describe('SendPageClient - Complete Flow Tests', () => {
       expect(screen.getByText('123')).toBeInTheDocument()
     })
 
-    it('numpad handles decimal correctly', async () => {
+    it('numpad handles decimal correctly', () => {
       fireEvent.click(screen.getByRole('button', { name: '5' }))
       fireEvent.click(screen.getByRole('button', { name: '.' }))
       fireEvent.click(screen.getByRole('button', { name: '5' }))
@@ -79,7 +78,7 @@ describe('SendPageClient - Complete Flow Tests', () => {
       expect(screen.getByText('5.5')).toBeInTheDocument()
     })
 
-    it('prevents multiple decimals', async () => {
+    it('prevents multiple decimals', () => {
       fireEvent.click(screen.getByRole('button', { name: '1' }))
       fireEvent.click(screen.getByRole('button', { name: '.' }))
       fireEvent.click(screen.getByRole('button', { name: '5' }))
@@ -89,14 +88,14 @@ describe('SendPageClient - Complete Flow Tests', () => {
       expect(screen.getByText('1.55')).toBeInTheDocument()
     })
 
-    it('adds leading zero when decimal is pressed first', async () => {
+    it('adds leading zero when decimal is pressed first', () => {
       fireEvent.click(screen.getByRole('button', { name: '.' }))
       fireEvent.click(screen.getByRole('button', { name: '5' }))
       
       expect(screen.getByText('0.5')).toBeInTheDocument()
     })
 
-    it('replaces leading zero with number when typing', async () => {
+    it('replaces leading zero with number when typing', () => {
       fireEvent.click(screen.getByRole('button', { name: '.' }))
       fireEvent.click(screen.getByRole('button', { name: '5' }))
       expect(screen.getByText('0.5')).toBeInTheDocument()
@@ -109,7 +108,7 @@ describe('SendPageClient - Complete Flow Tests', () => {
       expect(screen.getByText('5')).toBeInTheDocument()
     })
 
-    it('numpad handles backspace correctly', async () => {
+    it('numpad handles backspace correctly', () => {
       fireEvent.click(screen.getByRole('button', { name: '1' }))
       fireEvent.click(screen.getByRole('button', { name: '2' }))
       fireEvent.click(screen.getByRole('button', { name: '3' }))
@@ -126,7 +125,7 @@ describe('SendPageClient - Complete Flow Tests', () => {
       expect(screen.getByText('0')).toBeInTheDocument()
     })
 
-    it('limits decimal places to 6', async () => {
+    it('limits decimal places to 6', () => {
       fireEvent.click(screen.getByRole('button', { name: '1' }))
       fireEvent.click(screen.getByRole('button', { name: '.' }))
       fireEvent.click(screen.getByRole('button', { name: '1' }))
@@ -161,7 +160,7 @@ describe('SendPageClient - Complete Flow Tests', () => {
       })
     })
 
-    it('navigating back from recipient step calls router.back', async () => {
+    it('navigating back from recipient step calls router.back', () => {
       render(<SendPageClient />)
       
       const backButton = screen.getByRole('button', { name: '' })
@@ -183,17 +182,17 @@ describe('SendPageClient - Complete Flow Tests', () => {
       })
     })
 
-    it('Review button is disabled when amount is zero', async () => {
+    it('Review button is disabled when amount is zero', () => {
       const reviewButton = screen.getByRole('button', { name: /review/i })
       expect(reviewButton).toBeDisabled()
     })
 
-    it('Review button is disabled when amount is empty', async () => {
+    it('Review button is disabled when amount is empty', () => {
       const reviewButton = screen.getByRole('button', { name: /review/i })
       expect(reviewButton).toBeDisabled()
     })
 
-    it('Review button is enabled when amount is greater than zero', async () => {
+    it('Review button is enabled when amount is greater than zero', () => {
       fireEvent.click(screen.getByRole('button', { name: '5' }))
       
       const reviewButton = screen.getByRole('button', { name: /review/i })
@@ -202,7 +201,7 @@ describe('SendPageClient - Complete Flow Tests', () => {
   })
 
   describe('RecentRecipients Integration', () => {
-    it('handleRecipientSelect pre-fills the input from RecentRecipients', async () => {
+    it('handleRecipientSelect pre-fills the input from RecentRecipients', () => {
       // This test verifies the integration exists
       // Full implementation depends on RecentRecipients mock
       render(<SendPageClient />)

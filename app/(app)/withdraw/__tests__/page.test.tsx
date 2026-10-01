@@ -365,7 +365,7 @@ describe('session-provider authentication logic', () => {
     })
   })
 
-  it('a 401 response triggers logout and redirect to /login', async () => {
+  it('a 401 response triggers logout and redirect to /login', () => {
     jest.isolateModules(() => {
       const React = jest.requireActual('react')
       const { render, act } = jest.requireActual('@testing-library/react')

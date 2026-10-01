@@ -4,6 +4,17 @@ import { RevenueChart } from '@/components/wallet/revenue-chart'
 import type { Payment } from '@/lib/api'
 import * as revenueModule from '@/lib/revenue'
 
+// Wrap the real implementations so calls can be counted (ES module exports
+// can't be redefined with jest.spyOn).
+jest.mock('@/lib/revenue', () => {
+  const actual = jest.requireActual('@/lib/revenue')
+  return {
+    ...actual,
+    buildDailyRevenue: jest.fn(actual.buildDailyRevenue),
+    assetsInSeries: jest.fn(actual.assetsInSeries),
+  }
+})
+
 function payment(overrides: Partial<Payment>): Payment {
   return {
     id: 'p1',
@@ -57,8 +68,10 @@ describe('RevenueChart', () => {
   })
 
   it('memoizes expensive calculations and does not recalculate when unrelated state changes', () => {
-    const buildDailyRevenueSpy = jest.spyOn(revenueModule, 'buildDailyRevenue')
-    const assetsInSeriesSpy = jest.spyOn(revenueModule, 'assetsInSeries')
+    const buildDailyRevenueSpy = revenueModule.buildDailyRevenue as jest.Mock
+    const assetsInSeriesSpy = revenueModule.assetsInSeries as jest.Mock
+    buildDailyRevenueSpy.mockClear()
+    assetsInSeriesSpy.mockClear()
 
     const testPayments = [
       payment({ asset: 'XLM', amount_stroops: 10_000_000n }),
@@ -97,8 +110,5 @@ describe('RevenueChart', () => {
     expect(buildDailyRevenueSpy).not.toHaveBeenCalled()
     expect(assetsInSeriesSpy).not.toHaveBeenCalled()
 
-    // Cleanup
-    buildDailyRevenueSpy.mockRestore()
-    assetsInSeriesSpy.mockRestore()
   })
 })

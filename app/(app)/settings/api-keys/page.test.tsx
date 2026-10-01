@@ -137,10 +137,11 @@ describe('ApiKeysPage - One-time key reveal', () => {
     })
 
     // Mock clipboard API
-    Object.assign(navigator, {
-      clipboard: {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
         writeText: jest.fn().mockResolvedValue(undefined),
       },
+      configurable: true,
     })
 
     render(<ApiKeysPage />)

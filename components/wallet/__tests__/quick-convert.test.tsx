@@ -30,9 +30,9 @@ describe('QuickConvert', () => {
 
   it('renders the correct count badge when requests exist', () => {
     const requests = [
-      mockRequest({ id: 'req1', amount_stroops: 500000000n }),
-      mockRequest({ id: 'req2', amount_stroops: 750000000n }),
-      mockRequest({ id: 'req3', amount_stroops: 1000000000n }),
+      mockRequest({ id: 'req1', amount_stroops: 50000000n }),
+      mockRequest({ id: 'req2', amount_stroops: 75000000n }),
+      mockRequest({ id: 'req3', amount_stroops: 100000000n }),
     ]
 
     render(<QuickConvert openRequests={requests} />)

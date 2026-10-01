@@ -66,6 +66,7 @@ export default function WalletPage() {
     if (!wallet) return
     try {
       await navigator.clipboard.writeText(wallet.address)
+      setError(null)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (clipboardError) {

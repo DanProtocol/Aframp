@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { OZOW_BANKS } from '@/lib/payment-providers'
 import { calculateFees, formatCurrency } from '@/lib/payment-providers'
 import { api } from '@/lib/api'
+import { redirectTo } from '@/lib/navigation'
 
 interface ZarOnrampProps {
   token: string
@@ -107,7 +108,7 @@ export function ZarOnramp({ token, onSuccess }: ZarOnrampProps) {
       sessionStorage.setItem(OZOW_TRANSACTION_ID_KEY, transaction_id)
 
       // Redirect to Ozow payment page
-      window.location.href = parsedUrl.href
+      redirectTo(parsedUrl.href)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to initiate payment')
       setIsProcessing(false)

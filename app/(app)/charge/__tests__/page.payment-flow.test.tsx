@@ -120,7 +120,7 @@ describe('ChargePage', () => {
 
       await user.click(screen.getByRole('button', { name: 'Delete last digit' }))
 
-      expect(screen.getByText('0')).toBeInTheDocument()
+      expect(screen.getByTestId('charge-amount')).toHaveTextContent(/^0$/)
     })
 
     it('replaces leading zero when typing digits', async () => {
@@ -128,11 +128,11 @@ describe('ChargePage', () => {
       render(<ChargePage />)
 
       // Input starts at "0"
-      expect(screen.getByText('0')).toBeInTheDocument()
+      expect(screen.getByTestId('charge-amount')).toHaveTextContent(/^0$/)
 
       await user.click(screen.getByRole('button', { name: '5' }))
 
-      expect(screen.getByText('5')).toBeInTheDocument()
+      expect(screen.getByTestId('charge-amount')).toHaveTextContent(/^5$/)
       expect(screen.queryByText('05')).not.toBeInTheDocument()
     })
   })

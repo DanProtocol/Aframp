@@ -2,6 +2,9 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { api } from '@/lib/api'
 import { ZarOnramp } from '../zar-onramp'
+import { redirectTo } from '@/lib/navigation'
+
+jest.mock('@/lib/navigation', () => ({ redirectTo: jest.fn() }))
 
 jest.mock('@/lib/api', () => ({
   api: {
@@ -38,36 +41,9 @@ jest.mock('@/components/ui/select', () => {
 
 const mockCreateOzowPayment = api.createOzowPayment as jest.Mock
 
-// Track window.location.href assignments without redefining the property.
-let assignedHref = ''
-
-beforeAll(() => {
-  // jsdom sets window.location as non-configurable by default.
-  // Delete it first so we can install our own writable descriptor.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete (window as any).location
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    writable: true,
-    value: {
-      href: '',
-      origin: 'https://app.aframp.com',
-    },
-  })
-})
+const mockRedirectTo = redirectTo as jest.Mock
 
 beforeEach(() => {
-  assignedHref = ''
-  // Reset href and intercept assignments.
-  Object.defineProperty(window.location, 'href', {
-    configurable: true,
-    set(val: string) {
-      assignedHref = val
-    },
-    get() {
-      return assignedHref
-    },
-  })
   jest.clearAllMocks()
 })
 
@@ -88,7 +64,7 @@ describe('ZarOnramp – payment_url validation (#639)', () => {
     await fillAndSubmit(user)
 
     await waitFor(() =>
-      expect(assignedHref).toBe('https://pay.ozow.com/initiate?token=abc')
+      expect(mockRedirectTo).toHaveBeenCalledWith('https://pay.ozow.com/initiate?token=abc')
     )
   })
 
@@ -100,10 +76,11 @@ describe('ZarOnramp – payment_url validation (#639)', () => {
 
     await fillAndSubmit(user)
 
+    // javascript: parses as a URL, so it's caught by the protocol check.
     expect(
-      await screen.findByText(/Invalid payment URL received from server/i)
+      await screen.findByText(/Payment URL failed security validation/i)
     ).toBeInTheDocument()
-    expect(assignedHref).toBe('')
+    expect(mockRedirectTo).not.toHaveBeenCalled()
   })
 
   it('rejects an http:// (non-https) URL and shows an error', async () => {
@@ -117,7 +94,7 @@ describe('ZarOnramp – payment_url validation (#639)', () => {
     expect(
       await screen.findByText(/Payment URL failed security validation/i)
     ).toBeInTheDocument()
-    expect(assignedHref).toBe('')
+    expect(mockRedirectTo).not.toHaveBeenCalled()
   })
 
   it('rejects a URL on a non-Ozow domain and shows an error', async () => {
@@ -131,6 +108,6 @@ describe('ZarOnramp – payment_url validation (#639)', () => {
     expect(
       await screen.findByText(/Payment URL failed security validation/i)
     ).toBeInTheDocument()
-    expect(assignedHref).toBe('')
+    expect(mockRedirectTo).not.toHaveBeenCalled()
   })
 })

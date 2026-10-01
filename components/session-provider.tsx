@@ -11,6 +11,9 @@ import {
   type OtpChallengeResponse,
 } from '@/lib/api'
 
+// #633: token is now stored in an HTTP-only cookie via /api/session,
+// not in localStorage. No token is ever readable by client-side JS.
+
 interface Session {
   token: string
   userId: string
@@ -19,7 +22,7 @@ interface Session {
 
 interface SessionContextValue {
   session: Session | null
-  /** False until the session cookie has been read — guards against redirecting on first paint. */
+  /** False until the cookie has been read from the server — guards against redirecting on first paint. */
   ready: boolean
   signIn: (email: string, password: string) => Promise<LoginResult>
   /** Always a challenge — the account doesn't exist until `completeOtp` succeeds. */
@@ -50,38 +53,49 @@ function toSession(response: AuthResponse): Session {
   }
 }
 
+/** Persist the session to the HTTP-only cookie via the API route. */
+async function persistCookie(next: Session): Promise<void> {
+  await fetch('/api/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(next),
+  })
+}
+
+/** Clear the HTTP-only cookie. */
+async function clearCookie(): Promise<void> {
+  await fetch('/api/session', { method: 'DELETE' })
+}
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [ready, setReady] = useState(false)
   const [me, setMe] = useState<Me | null>(null)
 
-  // On mount, read the session from the httpOnly cookie via the API route.
+  // #633: on mount, read the session from the HTTP-only cookie via
+  // /api/session (GET). This replaces the localStorage read.
   useEffect(() => {
     fetch('/api/session')
-      .then((res) => res.json() as Promise<Session | null>)
-      .then((data) => {
-        if (data?.token) setSession(data)
+      .then((res) => res.json() as Promise<{ session: Session | null }>)
+      .then(({ session: stored }) => {
+        if (stored) setSession(stored)
       })
-      .catch(() => {})
+      .catch(() => {
+        // Network error on startup — start with no session.
+      })
       .finally(() => setReady(true))
   }, [])
 
   const persist = useCallback(async (next: Session) => {
-    try {
-      await fetch('/api/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(next),
-      })
-    } catch {
-      // Best-effort: if the API route fails the session still works for this tab.
-    }
     setSession(next)
+    await persistCookie(next)
   }, [])
 
   const signIn = useCallback(
     async (email: string, password: string) => {
       const result = await api.login(email, password)
+      // Only a legacy no-phone account gets a session straight away; a
+      // challenge means the caller still has to route to `/verify`.
       if ('token' in result) await persist(toSession(result))
       return result
     },
@@ -104,7 +118,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(() => {
     if (session) api.logout(session.token).catch(() => {})
-    fetch('/api/session', { method: 'DELETE' }).catch(() => {})
+    clearCookie().catch(() => {})
     setSession(null)
     setMe(null)
   }, [session])

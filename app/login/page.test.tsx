@@ -117,4 +117,29 @@ describe('LoginPage', () => {
 
     expect(await screen.findByText(/60 seconds/i)).toBeInTheDocument()
   })
+
+  it('shows a rate-limit message with retry guidance on a 429 response', async () => {
+    const user = userEvent.setup()
+    signIn.mockRejectedValue(new ApiError('rate limited', 429))
+    render(<LoginPage />)
+
+    await user.type(screen.getByLabelText(/email/i), 'merchant@example.com')
+    await user.type(screen.getByLabelText(/password/i), 'wrong-pass')
+    await user.click(screen.getByRole('button', { name: /sign in/i }))
+
+    expect(await screen.findByText(/too many sign-in attempts/i)).toBeInTheDocument()
+    expect(screen.getByText(/too many sign-in attempts/i)).toBeInTheDocument()
+  })
+
+  it('parses the retry-after seconds from the error code on a 429', async () => {
+    const user = userEvent.setup()
+    signIn.mockRejectedValue(new ApiError('rate limited', 429, 'RETRY_AFTER_60'))
+    render(<LoginPage />)
+
+    await user.type(screen.getByLabelText(/email/i), 'merchant@example.com')
+    await user.type(screen.getByLabelText(/password/i), 'wrong-pass')
+    await user.click(screen.getByRole('button', { name: /sign in/i }))
+
+    expect(await screen.findByText(/60 seconds/i)).toBeInTheDocument()
+  })
 })

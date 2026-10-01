@@ -17,12 +17,15 @@ const paymentRequest = {
 }
 
 test('creates a payment request and displays its QR code', async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem(
-      'aframp.session',
-      JSON.stringify({ token: 'e2e-token', userId: 'e2e-user', merchantId: 'e2e-merchant' })
-    )
-  })
+  // The session lives in an httpOnly cookie behind /api/session.
+  await page.route('**/api/session', (route) =>
+    route.fulfill({
+      json:
+        route.request().method() === 'GET'
+          ? { token: 'e2e-token', userId: 'e2e-user', merchantId: 'e2e-merchant' }
+          : { ok: true },
+    })
+  )
 
   await page.route('**/backend/payment-requests', (route) =>
     route.fulfill({ status: 201, json: paymentRequest })
@@ -32,9 +35,14 @@ test('creates a payment request and displays its QR code', async ({ page }) => {
   )
 
   await page.goto('/charge')
+  // Don't interact with the server-rendered keypad before React hydrates it.
+  await page.waitForLoadState('networkidle')
   await page.getByRole('button', { name: '1', exact: true }).click()
   await page.getByRole('button', { name: 'Show payment code' }).click()
 
   await expect(page).toHaveURL(new RegExp(`/request/${requestId}$`))
-  await expect(page.locator('svg[title^="Pay "]')).toBeVisible()
+  // react-qr-code renders `title` as a <title> child, not an attribute.
+  await expect(
+    page.locator('svg', { has: page.locator('title', { hasText: /^Pay / }) })
+  ).toBeVisible()
 })

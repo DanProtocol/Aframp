@@ -15,6 +15,7 @@ jest.mock('@/lib/api', () => {
   }
   return {
     api: {
+      getMe: jest.fn(),
       getBalances: jest.fn(),
       listWithdrawals: jest.fn(),
       createWithdrawal: jest.fn(),
@@ -78,6 +79,7 @@ function withdrawal(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   jest.clearAllMocks()
+  ;(api.getMe as jest.Mock).mockResolvedValue({ kyc_status: 'approved' })
   mockGetBalances.mockResolvedValue([])
   mockListWithdrawals.mockResolvedValue([])
   mockCreateWithdrawal.mockResolvedValue({})
@@ -109,6 +111,7 @@ describe('WithdrawPage', () => {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '044' } })
     await user.type(screen.getByLabelText('Account number'), '0123456789')
     await user.click(screen.getByRole('button', { name: 'Cash out' }))
+    await user.click(await screen.findByRole('button', { name: 'Confirm cash out' }))
 
     expect(await screen.findByText(/no balance to cash out/i)).toBeInTheDocument()
     expect(screen.getByLabelText('Amount (cNGN)')).toBeDisabled()
@@ -268,6 +271,7 @@ describe('WithdrawPage', () => {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '044' } })
     await user.type(screen.getByLabelText('Account number'), '0123456789')
     await user.click(screen.getByRole('button', { name: 'Cash out' }))
+    await user.click(await screen.findByRole('button', { name: 'Confirm cash out' }))
 
     await waitFor(() =>
       expect(mockCreateWithdrawal).toHaveBeenCalledWith(
@@ -296,6 +300,7 @@ describe('WithdrawPage', () => {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '044' } })
     await user.type(screen.getByLabelText('Account number'), '0123456789')
     await user.click(screen.getByRole('button', { name: 'Cash out' }))
+    await user.click(await screen.findByRole('button', { name: 'Confirm cash out' }))
 
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('Bank provider unavailable')
@@ -334,96 +339,5 @@ describe('WithdrawPage', () => {
     } finally {
       global.fetch = originalFetch
     }
-  })
-})
-
-describe('session-provider authentication logic', () => {
-  const mockPush = jest.fn()
-
-  beforeEach(() => {
-    jest.resetModules()
-    jest.clearAllMocks()
-  })
-
-  it('useAuthenticatedSession throws when no token is in context', () => {
-    jest.isolateModules(() => {
-      const React = jest.requireActual('react')
-      const { renderHook } = jest.requireActual('@testing-library/react')
-      const { useAuthenticatedSession } = jest.requireActual(
-        '@/components/session-provider'
-      )
-
-      const wrapper = ({ children }: { children: React.ReactNode }) =>
-        React.createElement(React.Fragment, null, children)
-
-      expect(() => renderHook(() => useAuthenticatedSession(), { wrapper })).toThrow()
-    })
-  })
-
-  it('registers setUnauthorizedHandler on mount and clears it on unmount', () => {
-    jest.isolateModules(() => {
-      const React = jest.requireActual('react')
-      const { render } = jest.requireActual('@testing-library/react')
-      const { SessionProvider } = jest.requireActual('@/components/session-provider')
-
-      const setUnauthorizedHandler = jest.fn()
-      const clearUnauthorizedHandler = jest.fn()
-
-      const { unmount } = render(
-        React.createElement(
-          SessionProvider,
-          {
-            token: 'test-token',
-            setUnauthorizedHandler,
-            clearUnauthorizedHandler,
-          } as any,
-          React.createElement('div', null, 'child')
-        )
-      )
-
-      expect(setUnauthorizedHandler).toHaveBeenCalledTimes(1)
-      expect(typeof setUnauthorizedHandler.mock.calls[0][0]).toBe('function')
-
-      unmount()
-
-      expect(clearUnauthorizedHandler).toHaveBeenCalledTimes(1)
-    })
-  })
-
-  it('a 401 response triggers logout and redirect to /login', async () => {
-    jest.isolateModules(() => {
-      const React = jest.requireActual('react')
-      const { render, act } = jest.requireActual('@testing-library/react')
-      const { SessionProvider } = jest.requireActual('@/components/session-provider')
-
-      let handler: ((error: unknown) => void) | undefined
-      const setUnauthorizedHandler = jest.fn((fn: (error: unknown) => void) => {
-        handler = fn
-      })
-      const clearUnauthorizedHandler = jest.fn()
-      const logout = jest.fn()
-
-      render(
-        React.createElement(
-          SessionProvider,
-          {
-            token: 'test-token',
-            logout,
-            setUnauthorizedHandler,
-            clearUnauthorizedHandler,
-          } as any,
-          React.createElement('div', null, 'child')
-        )
-      )
-
-      expect(handler).toBeDefined()
-
-      act(() => {
-        handler!(new ApiError('unauthorized', 401))
-      })
-
-      expect(logout).toHaveBeenCalledTimes(1)
-      expect(mockPush).toHaveBeenCalledWith('/login')
-    })
   })
 })

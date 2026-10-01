@@ -29,7 +29,13 @@ const EXTRA_SOURCES = ['next.config.mjs']
 
 // Generated at build time (next-pwa) or fetched directly by the service
 // worker — never imported from source, so they cannot be "unused".
-const RUNTIME_ALLOWLIST = [/^sw\.js(\.map)?$/, /^workbox-.*\.js(\.map)?$/, /^push-handler\.js$/]
+const RUNTIME_ALLOWLIST = [
+  /^sw\.js(\.map)?$/,
+  /^workbox-.*\.js(\.map)?$/,
+  /^push-handler\.js$/,
+  // Default push-notification icon, referenced from public/push-handler.js.
+  /^icon-192x192\.png$/,
+]
 
 function walk(dir) {
   const out = []

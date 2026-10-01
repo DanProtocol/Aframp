@@ -1,10 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: vi.fn() }) }))
+jest.mock('next/navigation', () => ({ useRouter: () => ({ replace: jest.fn() }) }))
 
 const mockMe = {
   id: '1',
@@ -13,12 +12,12 @@ const mockMe = {
   merchant_name: 'Test Merchant',
 }
 
-vi.mock('@/lib/api', () => ({
+jest.mock('@/lib/api', () => ({
   api: {
-    getMe: vi.fn().mockResolvedValue(mockMe),
-    changeEmail: vi.fn().mockResolvedValue({ message: 'ok' }),
-    updateProfile: vi.fn().mockResolvedValue(mockMe),
-    deleteAccount: vi.fn().mockResolvedValue({}),
+    getMe: jest.fn(() => Promise.resolve(mockMe)),
+    changeEmail: jest.fn().mockResolvedValue({ message: 'ok' }),
+    updateProfile: jest.fn(() => Promise.resolve(mockMe)),
+    deleteAccount: jest.fn().mockResolvedValue({}),
   },
   ApiError: class ApiError extends Error {
     status: number
@@ -29,12 +28,12 @@ vi.mock('@/lib/api', () => ({
   },
 }))
 
-vi.mock('@/components/session-provider', () => ({
+jest.mock('@/components/session-provider', () => ({
   useAuthenticatedSession: () => ({ token: 'tok' }),
-  useSession: () => ({ signOut: vi.fn(), refreshMe: vi.fn(), me: mockMe }),
+  useSession: () => ({ signOut: jest.fn(), refreshMe: jest.fn(), me: mockMe }),
 }))
 
-vi.mock('@/components/push-notification-toggle', () => ({
+jest.mock('@/components/push-notification-toggle', () => ({
   PushNotificationToggle: () => <div>push toggle</div>,
 }))
 
@@ -45,7 +44,7 @@ import { api } from '@/lib/api'
 
 describe('Settings page – email validation', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
   })
 
   it('rejects an email with no @ sign and shows an inline error', async () => {

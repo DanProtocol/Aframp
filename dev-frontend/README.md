@@ -4,13 +4,13 @@ This directory is the **safe workspace** for contributors on the `dev-frontend` 
 
 ## Rules
 
-| ✅ Allowed | ❌ Forbidden |
-|-----------|-------------|
-| Create files inside `dev-frontend/` | Modify anything in `app/` |
-| Open PRs targeting `dev-frontend` branch | Modify anything in `components/` |
-| Add new components, pages, hooks here | Modify anything in `lib/` |
-| Write tests inside `dev-frontend/` | Modify `next.config.mjs` |
-| Add docs here | Modify `styles/`, `public/`, `types/`, `hooks/` |
+| ✅ Allowed                               | ❌ Forbidden                                    |
+| ---------------------------------------- | ----------------------------------------------- |
+| Create files inside `dev-frontend/`      | Modify anything in `app/`                       |
+| Open PRs targeting `dev-frontend` branch | Modify anything in `components/`                |
+| Add new components, pages, hooks here    | Modify anything in `lib/`                       |
+| Write tests inside `dev-frontend/`       | Modify `next.config.mjs`                        |
+| Add docs here                            | Modify `styles/`, `public/`, `types/`, `hooks/` |
 
 ## Why?
 
@@ -24,11 +24,13 @@ any push or PR on this branch that touches a protected main-frontend path.
 ## Getting Started
 
 1. Clone the repo and check out `dev-frontend`:
+
    ```bash
    git checkout dev-frontend
    ```
 
 2. Create your feature directory under `dev-frontend/`:
+
    ```bash
    mkdir dev-frontend/my-feature
    cd dev-frontend/my-feature

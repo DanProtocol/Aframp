@@ -10,14 +10,13 @@
  *   - NEXT_PUBLIC_STELLAR_NETWORK=MAINNET produces a mainnet explorer URL
  */
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { WalletInfo } from '../wallet-info'
 
 // ── Clipboard mock ────────────────────────────────────────────────────────────
 
-const writeText = vi.fn().mockResolvedValue(undefined)
+const writeText = jest.fn().mockResolvedValue(undefined)
 
 beforeEach(() => {
   Object.defineProperty(navigator, 'clipboard', {
@@ -28,7 +27,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  vi.clearAllMocks()
+  jest.clearAllMocks()
 })
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -40,9 +39,7 @@ const SHORT_ADDRESS = 'GCEZWK…XTOS'
 
 describe('loading state', () => {
   it('renders a skeleton and no wallet name when loading=true', () => {
-    render(
-      <WalletInfo walletName="My Wallet" walletAddress={FULL_ADDRESS} loading />
-    )
+    render(<WalletInfo walletName="My Wallet" walletAddress={FULL_ADDRESS} loading />)
     expect(screen.queryByText('My Wallet')).not.toBeInTheDocument()
     // Skeletons are rendered as divs with a skeleton class; at minimum the
     // component should not throw and should render something.
@@ -103,17 +100,20 @@ describe('copy button', () => {
   })
 
   it('resets the aria-label back to "Copy address" after 2 s', async () => {
-    vi.useFakeTimers()
+    jest.useFakeTimers()
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
     render(<WalletInfo walletName="W" walletAddress={FULL_ADDRESS} />)
 
-    await userEvent.click(screen.getByRole('button', { name: /copy address/i }))
-    expect(screen.getByRole('button', { name: /address copied/i })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /copy address/i }))
+    expect(await screen.findByRole('button', { name: /address copied/i })).toBeInTheDocument()
 
-    vi.advanceTimersByTime(2000)
+    act(() => {
+      jest.advanceTimersByTime(2000)
+    })
     await waitFor(() =>
       expect(screen.getByRole('button', { name: /copy address/i })).toBeInTheDocument()
     )
-    vi.useRealTimers()
+    jest.useRealTimers()
   })
 })
 

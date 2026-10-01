@@ -49,7 +49,8 @@ export function TransactionConfirmation({
         <div>
           <h2 className="text-2xl font-semibold">Sent successfully</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {form.amount} {form.asset.symbol} was sent to {form.recipient?.name ?? form.recipient?.address}
+            {form.amount} {form.asset.symbol} was sent to{' '}
+            {form.recipient?.name ?? form.recipient?.address}
           </p>
         </div>
         <Button onClick={onDone} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white">
@@ -76,9 +77,7 @@ export function TransactionConfirmation({
             <div className="space-y-2 flex-1">
               <h3 className="font-semibold text-destructive">Send failed</h3>
               {(error || failureReason) && (
-                <p className="text-sm text-destructive/90">
-                  {failureReason || error}
-                </p>
+                <p className="text-sm text-destructive/90">{failureReason || error}</p>
               )}
             </div>
           </div>
@@ -86,20 +85,21 @@ export function TransactionConfirmation({
         <div className="rounded-2xl border border-border bg-muted/20 p-4">
           <div className="text-sm text-muted-foreground">Transaction details</div>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-xl font-semibold">{form.amount || '0'} {form.asset.symbol}</span>
+            <span className="text-xl font-semibold">
+              {form.amount || '0'} {form.asset.symbol}
+            </span>
             <span className="text-sm text-muted-foreground">{form.asset.name}</span>
           </div>
           <div className="mt-4 text-sm text-muted-foreground">
-            To: <span className="font-medium text-foreground">{form.recipient?.name ?? form.recipient?.address}</span>
+            To:{' '}
+            <span className="font-medium text-foreground">
+              {form.recipient?.name ?? form.recipient?.address}
+            </span>
           </div>
           {form.note && <div className="mt-2 text-sm text-muted-foreground">Note: {form.note}</div>}
         </div>
         <div className="mt-auto flex gap-3">
-          <Button
-            onClick={onBack}
-            variant="outline"
-            className="flex-1"
-          >
+          <Button onClick={onBack} variant="outline" className="flex-1">
             Change details
           </Button>
           <Button
@@ -131,11 +131,16 @@ export function TransactionConfirmation({
       <div className="rounded-2xl border border-border bg-muted/20 p-4">
         <div className="text-sm text-muted-foreground">Sending</div>
         <div className="mt-2 flex items-center justify-between">
-          <span className="text-xl font-semibold">{form.amount || '0'} {form.asset.symbol}</span>
+          <span className="text-xl font-semibold">
+            {form.amount || '0'} {form.asset.symbol}
+          </span>
           <span className="text-sm text-muted-foreground">{form.asset.name}</span>
         </div>
         <div className="mt-4 text-sm text-muted-foreground">
-          To: <span className="font-medium text-foreground">{form.recipient?.name ?? form.recipient?.address}</span>
+          To:{' '}
+          <span className="font-medium text-foreground">
+            {form.recipient?.name ?? form.recipient?.address}
+          </span>
         </div>
         {form.note && <div className="mt-2 text-sm text-muted-foreground">Note: {form.note}</div>}
       </div>

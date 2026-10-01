@@ -19,28 +19,30 @@ export default function WalletPage() {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const load = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true)
-    try {
-      setWallet(await api.getWallet(token, signal))
-      setError(null)
-    } catch (cause) {
-      if (cause instanceof DOMException && cause.name === 'AbortError') return
-      // 400 "no wallet created yet" is the expected state for a new merchant.
-      if (cause instanceof ApiError && cause.status === 400) setWallet(null)
-      else if (cause instanceof ApiError && cause.status === 0)
-        setError('backend-down')
-      else setError(cause instanceof Error ? cause.message : 'Could not load your account')
-    } finally {
-      setLoading(false)
-    }
-    try {
-      setBalances(await api.getBalances(token, signal))
-    } catch (cause) {
-      if (cause instanceof DOMException && cause.name === 'AbortError') return
-      // Non-fatal: the address above is what matters if this fails.
-    }
-  }, [token])
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      setLoading(true)
+      try {
+        setWallet(await api.getWallet(token, signal))
+        setError(null)
+      } catch (cause) {
+        if (cause instanceof DOMException && cause.name === 'AbortError') return
+        // 400 "no wallet created yet" is the expected state for a new merchant.
+        if (cause instanceof ApiError && cause.status === 400) setWallet(null)
+        else if (cause instanceof ApiError && cause.status === 0) setError('backend-down')
+        else setError(cause instanceof Error ? cause.message : 'Could not load your account')
+      } finally {
+        setLoading(false)
+      }
+      try {
+        setBalances(await api.getBalances(token, signal))
+      } catch (cause) {
+        if (cause instanceof DOMException && cause.name === 'AbortError') return
+        // Non-fatal: the address above is what matters if this fails.
+      }
+    },
+    [token]
+  )
 
   useEffect(() => {
     const controller = new AbortController()
@@ -66,13 +68,12 @@ export default function WalletPage() {
     if (!wallet) return
     try {
       await navigator.clipboard.writeText(wallet.address)
+      setError(null)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (clipboardError) {
       // Clipboard API can fail in non-secure contexts or when permissions are denied
-      setError(
-        'Could not copy — please select and copy the address manually using your browser.'
-      )
+      setError('Could not copy — please select and copy the address manually using your browser.')
       console.error('Clipboard copy failed:', clipboardError)
     }
   }

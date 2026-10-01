@@ -34,7 +34,7 @@ describe('POST /api/session', () => {
 
     const res = await POST(req)
     expect(res.status).toBe(200)
-    const body = await res.json() as { ok: boolean }
+    const body = (await res.json()) as { ok: boolean }
     expect(body.ok).toBe(true)
 
     expect(mockCookieSet).toHaveBeenCalledWith(
@@ -81,7 +81,7 @@ describe('GET /api/session', () => {
   it('returns the parsed session when cookie is present', async () => {
     mockCookieGet.mockReturnValue({ value: JSON.stringify(sessionPayload) })
     const res = await GET()
-    const body = await res.json() as typeof sessionPayload
+    const body = (await res.json()) as typeof sessionPayload
     expect(body).toEqual(sessionPayload)
   })
 })

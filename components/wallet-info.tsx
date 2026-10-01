@@ -102,11 +102,7 @@ export function WalletInfo({
       </div>
 
       <Button asChild variant="outline" size="sm" className="w-full">
-        <a
-          href={`${explorerBase()}/${walletAddress}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a href={`${explorerBase()}/${walletAddress}`} target="_blank" rel="noopener noreferrer">
           <ExternalLink className="size-4" aria-hidden />
           View on explorer
         </a>

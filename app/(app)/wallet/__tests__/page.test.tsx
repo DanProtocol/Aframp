@@ -1,11 +1,15 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import WalletPage from '../page'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 
 // Mock dependencies
 jest.mock('@/components/session-provider', () => ({
-  useAuthenticatedSession: () => ({ token: 'test-token', userId: 'user-1', merchantId: 'merchant-1' }),
+  useAuthenticatedSession: () => ({
+    token: 'test-token',
+    userId: 'user-1',
+    merchantId: 'merchant-1',
+  }),
   useSession: () => ({
     me: {
       user_id: 'user-1',
@@ -26,23 +30,35 @@ jest.mock('@/lib/api', () => ({
     createWallet: jest.fn(),
   },
   ApiError: class ApiError extends Error {
-    constructor(message: string, public status: number) {
+    constructor(
+      message: string,
+      public status: number
+    ) {
       super(message)
     }
   },
 }))
 
-// Mock clipboard API
-Object.assign(navigator, {
-  clipboard: {
-    writeText: jest.fn(),
-  },
-})
+// Clipboard mock. setupUser() installs its own clipboard stub, so
+// re-install ours after every setup.
+const clipboardWriteText = jest.fn()
+function installClipboard() {
+  Object.defineProperty(navigator, 'clipboard', {
+    value: { writeText: clipboardWriteText },
+    configurable: true,
+  })
+}
+function setupUser(options?: Parameters<typeof userEvent.setup>[0]) {
+  const user = userEvent.setup(options)
+  installClipboard()
+  return user
+}
 
 describe('WalletPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    ;(navigator.clipboard.writeText as jest.Mock).mockResolvedValue(undefined)
+    clipboardWriteText.mockResolvedValue(undefined)
+    installClipboard()
   })
 
   const mockWallet = {
@@ -71,7 +87,7 @@ describe('WalletPage', () => {
   ]
 
   describe('Loading state', () => {
-    it('shows loading spinner initially', async () => {
+    it('shows loading spinner initially', () => {
       ;(api.getWallet as jest.Mock).mockImplementation(() => new Promise(() => {}))
       ;(api.getBalances as jest.Mock).mockImplementation(() => new Promise(() => {}))
 
@@ -98,7 +114,7 @@ describe('WalletPage', () => {
     })
 
     it('copies address to clipboard successfully', async () => {
-      const user = userEvent.setup()
+      const user = setupUser()
       ;(api.getWallet as jest.Mock).mockResolvedValue(mockWallet)
       ;(api.getBalances as jest.Mock).mockResolvedValue(mockBalances)
 
@@ -111,7 +127,7 @@ describe('WalletPage', () => {
       const copyButton = screen.getByRole('button', { name: /copy address/i })
       await user.click(copyButton)
 
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(mockWallet.address)
+      expect(clipboardWriteText).toHaveBeenCalledWith(mockWallet.address)
 
       await waitFor(() => {
         expect(screen.getByText(/copied/i)).toBeInTheDocument()
@@ -119,10 +135,8 @@ describe('WalletPage', () => {
     })
 
     it('shows error when clipboard write fails', async () => {
-      const user = userEvent.setup()
-      ;(navigator.clipboard.writeText as jest.Mock).mockRejectedValue(
-        new Error('Clipboard permission denied')
-      )
+      const user = setupUser()
+      clipboardWriteText.mockRejectedValue(new Error('Clipboard permission denied'))
       ;(api.getWallet as jest.Mock).mockResolvedValue(mockWallet)
       ;(api.getBalances as jest.Mock).mockResolvedValue(mockBalances)
 
@@ -144,7 +158,7 @@ describe('WalletPage', () => {
 
     it('resets copied state after 2 seconds', async () => {
       jest.useFakeTimers()
-      const user = userEvent.setup({ delay: null })
+      const user = setupUser({ delay: null })
       ;(api.getWallet as jest.Mock).mockResolvedValue(mockWallet)
       ;(api.getBalances as jest.Mock).mockResolvedValue(mockBalances)
 
@@ -174,7 +188,6 @@ describe('WalletPage', () => {
 
   describe('No wallet yet', () => {
     it('shows create wallet prompt when wallet does not exist', async () => {
-      const ApiError = (api as any).ApiError
       ;(api.getWallet as jest.Mock).mockRejectedValue(new ApiError('No wallet found', 400))
       ;(api.getBalances as jest.Mock).mockResolvedValue([])
 
@@ -188,8 +201,7 @@ describe('WalletPage', () => {
     })
 
     it('creates wallet when button is clicked', async () => {
-      const user = userEvent.setup()
-      const ApiError = (api as any).ApiError
+      const user = setupUser()
       ;(api.getWallet as jest.Mock).mockRejectedValueOnce(new ApiError('No wallet found', 400))
       ;(api.createWallet as jest.Mock).mockResolvedValue(mockWallet)
       ;(api.getBalances as jest.Mock).mockResolvedValue([])
@@ -203,7 +215,7 @@ describe('WalletPage', () => {
       const createButton = screen.getByRole('button', { name: /create payment address/i })
       await user.click(createButton)
 
-      expect(api.createWallet).toHaveBeenCalledWith('test-token')
+      expect(api.createWallet).toHaveBeenCalledWith('test-token', expect.anything())
 
       await waitFor(() => {
         expect(screen.getByText(mockWallet.address)).toBeInTheDocument()
@@ -211,8 +223,7 @@ describe('WalletPage', () => {
     })
 
     it('shows error when wallet creation fails', async () => {
-      const user = userEvent.setup()
-      const ApiError = (api as any).ApiError
+      const user = setupUser()
       ;(api.getWallet as jest.Mock).mockRejectedValue(new ApiError('No wallet found', 400))
       ;(api.createWallet as jest.Mock).mockRejectedValue(new Error('Creation failed'))
       ;(api.getBalances as jest.Mock).mockResolvedValue([])
@@ -234,7 +245,6 @@ describe('WalletPage', () => {
 
   describe('Error handling', () => {
     it('shows backend-down error for status 0', async () => {
-      const ApiError = (api as any).ApiError
       ;(api.getWallet as jest.Mock).mockRejectedValue(new ApiError('Connection failed', 0))
       ;(api.getBalances as jest.Mock).mockResolvedValue([])
 

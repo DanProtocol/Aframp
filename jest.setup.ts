@@ -80,3 +80,14 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
     }),
   })
 }
+
+// Tests must not hit the network. undici's real fetch also crashes under jsdom
+// (removeAbortListener/markResourceTiming), so the default fetch rejects like an
+// offline request; tests that need responses install their own mock.
+const unmockedFetch = () => Promise.reject(new TypeError('Network request not mocked in this test'))
+Object.defineProperty(globalThis, 'fetch', {
+  value: unmockedFetch,
+  writable: true,
+  enumerable: true,
+  configurable: true,
+})

@@ -295,10 +295,9 @@ Make sure `.env.local` sets `NEXT_PUBLIC_API_URL` to the backend URL (e.g. `http
 
 ## 📦 Available Scripts
 
-| Command                 | Description                                    |
-| ----------------------- | -----------------
+| Command | Description |
+| ------- | ----------- |
 
 _Built for Africa, Verified by Blockchain. Onramp to the future. Offramp to opportunity._ 🔗🌍
 
 ## Handsoff notes
-

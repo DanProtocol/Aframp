@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ProfilePage from './page'
 import { useAuthenticatedSession, useSession } from '@/components/session-provider'
@@ -149,7 +149,7 @@ describe('ProfilePage - Account deletion confirmation', () => {
     const user = userEvent.setup()
     const mockSignOut = jest.fn()
     const mockReplace = jest.fn()
-    
+
     ;(useSession as jest.Mock).mockReturnValue({
       signOut: mockSignOut,
       refreshMe: jest.fn(),
@@ -235,11 +235,10 @@ describe('ProfilePage - Account deletion confirmation', () => {
       expect(screen.getByText(/delete your account\?/i)).toBeInTheDocument()
     })
 
-    // Verify warning messages are present
-    expect(screen.getByText(/this action cannot be undone/i)).toBeInTheDocument()
-    expect(
-      screen.getByText(/permanently delete your merchant account/i)
-    ).toBeInTheDocument()
+    // Verify warning messages are present in the dialog
+    const dialog = within(screen.getByRole('alertdialog'))
+    expect(dialog.getByText(/this action cannot be undone/i)).toBeInTheDocument()
+    expect(dialog.getByText(/permanently delete your merchant account/i)).toBeInTheDocument()
   })
 
   it('prompts user to type their specific email address', async () => {
@@ -258,7 +257,78 @@ describe('ProfilePage - Account deletion confirmation', () => {
     })
 
     // Verify the prompt shows their actual email
-    expect(screen.getByText(new RegExp(mockMe.email))).toBeInTheDocument()
+    const dialog = within(screen.getByRole('alertdialog'))
+    expect(dialog.getByText(new RegExp(mockMe.email))).toBeInTheDocument()
     expect(screen.getByPlaceholderText(mockMe.email)).toBeInTheDocument()
+  })
+})
+
+describe('ProfilePage - profile and account errors', () => {
+  const mockMe = {
+    user_id: 'user-1',
+    email: 'test@example.com',
+    name: 'Test User',
+    is_admin: false,
+    created_at: '2024-01-01T00:00:00Z',
+    merchant_id: 'merchant-1',
+    merchant_name: 'Test Merchant',
+  }
+  const refreshMe = jest.fn()
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    ;(useAuthenticatedSession as jest.Mock).mockReturnValue({ token: 'test-token' })
+    ;(useSession as jest.Mock).mockReturnValue({ signOut: jest.fn(), refreshMe, me: mockMe })
+    ;(useRouter as jest.Mock).mockReturnValue({ replace: jest.fn() })
+    ;(api.getMe as jest.Mock).mockResolvedValue(mockMe)
+    refreshMe.mockResolvedValue({ success: true, data: mockMe })
+  })
+
+  async function renderLoaded() {
+    render(<ProfilePage />)
+    await screen.findByDisplayValue('Test User')
+  }
+
+  it('saves trimmed profile changes and confirms', async () => {
+    const user = userEvent.setup()
+    ;(api.updateProfile as jest.Mock).mockResolvedValue({ ...mockMe, name: 'New Name' })
+    await renderLoaded()
+
+    const nameInput = screen.getByLabelText('Your name')
+    await user.clear(nameInput)
+    await user.type(nameInput, '  New Name  ')
+    await user.click(screen.getByRole('button', { name: /save profile|save changes|save/i }))
+
+    await waitFor(() =>
+      expect(api.updateProfile).toHaveBeenCalledWith('test-token', {
+        name: 'New Name',
+        merchant_name: 'Test Merchant',
+      })
+    )
+    expect(await screen.findByText('Profile updated successfully.')).toBeInTheDocument()
+    expect(refreshMe).toHaveBeenCalled()
+  })
+
+  it('shows the error when saving the profile fails', async () => {
+    const user = userEvent.setup()
+    ;(api.updateProfile as jest.Mock).mockRejectedValue(new Error('save failed'))
+    await renderLoaded()
+
+    await user.click(screen.getByRole('button', { name: /save profile|save changes|save/i }))
+
+    expect(await screen.findByText('save failed')).toBeInTheDocument()
+  })
+
+  it('shows the error when account deletion fails', async () => {
+    const user = userEvent.setup()
+    ;(api.deleteAccount as jest.Mock).mockRejectedValue(new Error('delete failed'))
+    await renderLoaded()
+
+    await user.click(screen.getByRole('button', { name: /delete account/i }))
+    await user.type(screen.getByPlaceholderText(mockMe.email), mockMe.email)
+    const dialog = within(screen.getByRole('alertdialog'))
+    await user.click(dialog.getByRole('button', { name: /delete/i }))
+
+    expect(await screen.findByText('delete failed')).toBeInTheDocument()
   })
 })

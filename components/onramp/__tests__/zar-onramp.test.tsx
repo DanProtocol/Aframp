@@ -2,10 +2,14 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { api } from '@/lib/api'
 import { ZarOnramp } from '../zar-onramp'
+import { redirectTo } from '@/lib/navigation'
+
+jest.mock('@/lib/navigation', () => ({ redirectTo: jest.fn() }))
 
 jest.mock('@/lib/api', () => ({
   api: {
     createOzowPayment: jest.fn(),
+    verifyOzowPayment: jest.fn(),
   },
 }))
 
@@ -38,36 +42,9 @@ jest.mock('@/components/ui/select', () => {
 
 const mockCreateOzowPayment = api.createOzowPayment as jest.Mock
 
-// Track window.location.href assignments without redefining the property.
-let assignedHref = ''
-
-beforeAll(() => {
-  // jsdom sets window.location as non-configurable by default.
-  // Delete it first so we can install our own writable descriptor.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete (window as any).location
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    writable: true,
-    value: {
-      href: '',
-      origin: 'https://app.aframp.com',
-    },
-  })
-})
+const mockRedirectTo = redirectTo as jest.Mock
 
 beforeEach(() => {
-  assignedHref = ''
-  // Reset href and intercept assignments.
-  Object.defineProperty(window.location, 'href', {
-    configurable: true,
-    set(val: string) {
-      assignedHref = val
-    },
-    get() {
-      return assignedHref
-    },
-  })
   jest.clearAllMocks()
 })
 
@@ -88,7 +65,7 @@ describe('ZarOnramp – payment_url validation (#639)', () => {
     await fillAndSubmit(user)
 
     await waitFor(() =>
-      expect(assignedHref).toBe('https://pay.ozow.com/initiate?token=abc')
+      expect(mockRedirectTo).toHaveBeenCalledWith('https://pay.ozow.com/initiate?token=abc')
     )
   })
 
@@ -100,10 +77,9 @@ describe('ZarOnramp – payment_url validation (#639)', () => {
 
     await fillAndSubmit(user)
 
-    expect(
-      await screen.findByText(/Invalid payment URL received from server/i)
-    ).toBeInTheDocument()
-    expect(assignedHref).toBe('')
+    // javascript: parses as a URL, so it's caught by the protocol check.
+    expect(await screen.findByText(/Payment URL failed security validation/i)).toBeInTheDocument()
+    expect(mockRedirectTo).not.toHaveBeenCalled()
   })
 
   it('rejects an http:// (non-https) URL and shows an error', async () => {
@@ -114,10 +90,8 @@ describe('ZarOnramp – payment_url validation (#639)', () => {
 
     await fillAndSubmit(user)
 
-    expect(
-      await screen.findByText(/Payment URL failed security validation/i)
-    ).toBeInTheDocument()
-    expect(assignedHref).toBe('')
+    expect(await screen.findByText(/Payment URL failed security validation/i)).toBeInTheDocument()
+    expect(mockRedirectTo).not.toHaveBeenCalled()
   })
 
   it('rejects a URL on a non-Ozow domain and shows an error', async () => {
@@ -128,9 +102,75 @@ describe('ZarOnramp – payment_url validation (#639)', () => {
 
     await fillAndSubmit(user)
 
-    expect(
-      await screen.findByText(/Payment URL failed security validation/i)
-    ).toBeInTheDocument()
-    expect(assignedHref).toBe('')
+    expect(await screen.findByText(/Payment URL failed security validation/i)).toBeInTheDocument()
+    expect(mockRedirectTo).not.toHaveBeenCalled()
+  })
+})
+
+describe('ZarOnramp – unparsable payment_url', () => {
+  it('shows an error for a payment URL that is not a URL at all', async () => {
+    const user = userEvent.setup()
+    mockCreateOzowPayment.mockResolvedValue({ payment_url: 'not a url', transaction_id: 'tx-1' })
+
+    await fillAndSubmit(user)
+
+    expect(await screen.findByText(/Invalid payment URL received from server/i)).toBeInTheDocument()
+    expect(mockRedirectTo).not.toHaveBeenCalled()
+  })
+})
+
+describe('ZarOnramp – verifying the payment after the Ozow redirect', () => {
+  const mockVerify = api.verifyOzowPayment as jest.Mock
+
+  beforeEach(() => {
+    window.history.pushState({}, '', '/charge?provider=ozow')
+    sessionStorage.setItem('ozow_transaction_id', 'tx-123')
+  })
+
+  afterEach(() => {
+    window.history.pushState({}, '', '/')
+    sessionStorage.clear()
+  })
+
+  it('reports success and clears the stored transaction id', async () => {
+    const onSuccess = jest.fn()
+    mockVerify.mockResolvedValue({ status: 'completed', tx_hash: 'hash-abc' })
+
+    render(<ZarOnramp token="test-token" onSuccess={onSuccess} />)
+
+    expect(screen.getByText('Verifying your payment...')).toBeInTheDocument()
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith('hash-abc'))
+    expect(mockVerify).toHaveBeenCalledWith('test-token', 'tx-123')
+    expect(sessionStorage.getItem('ozow_transaction_id')).toBeNull()
+  })
+
+  it('shows an error when the payment failed', async () => {
+    mockVerify.mockResolvedValue({ status: 'failed' })
+    render(<ZarOnramp token="test-token" />)
+
+    expect(await screen.findByText('Payment failed. Please try again.')).toBeInTheDocument()
+    expect(sessionStorage.getItem('ozow_transaction_id')).toBeNull()
+  })
+
+  it('keeps the transaction id while the payment is still pending', async () => {
+    mockVerify.mockResolvedValue({ status: 'pending' })
+    render(<ZarOnramp token="test-token" />)
+
+    await waitFor(() =>
+      expect(screen.queryByText('Verifying your payment...')).not.toBeInTheDocument()
+    )
+    expect(sessionStorage.getItem('ozow_transaction_id')).toBe('tx-123')
+  })
+
+  it('shows the verification error', async () => {
+    mockVerify.mockRejectedValue(new Error('verify down'))
+    render(<ZarOnramp token="test-token" />)
+    expect(await screen.findByText('verify down')).toBeInTheDocument()
+  })
+
+  it('does nothing without a stored transaction id', () => {
+    sessionStorage.clear()
+    render(<ZarOnramp token="test-token" />)
+    expect(mockVerify).not.toHaveBeenCalled()
   })
 })

@@ -27,7 +27,7 @@ describe('useStellarStatus', () => {
   it('returns operational status when indicator is none', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({
+      json: () => ({
         status: {
           indicator: 'none',
           description: 'All Systems Operational',
@@ -46,7 +46,7 @@ describe('useStellarStatus', () => {
   it('returns degraded status when indicator is minor', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({
+      json: () => ({
         status: {
           indicator: 'minor',
           description: 'Some systems experiencing issues',
@@ -65,7 +65,7 @@ describe('useStellarStatus', () => {
   it('returns outage status when indicator is major', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({
+      json: () => ({
         status: {
           indicator: 'major',
           description: 'Major outage detected',
@@ -84,7 +84,7 @@ describe('useStellarStatus', () => {
   it('returns outage status when indicator is critical', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({
+      json: () => ({
         status: {
           indicator: 'critical',
           description: 'Critical system failure',
@@ -130,7 +130,7 @@ describe('useStellarStatus', () => {
       callCount++
       return Promise.resolve({
         ok: true,
-        json: async () => ({
+        json: () => ({
           status: {
             indicator: 'none',
             description: `Status update ${callCount}`,
@@ -159,7 +159,7 @@ describe('useStellarStatus', () => {
   it('handles missing status data gracefully', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({}),
+      json: () => ({}),
     })
 
     const { result } = renderHook(() => useStellarStatus())
@@ -175,7 +175,7 @@ describe('useStellarStatus', () => {
 
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({
+      json: () => ({
         status: {
           indicator: 'none',
           description: 'Testnet operational',
@@ -199,7 +199,7 @@ describe('useStellarStatus', () => {
 
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => ({
+      json: () => ({
         status: {
           indicator: 'none',
           description: 'Mainnet operational',

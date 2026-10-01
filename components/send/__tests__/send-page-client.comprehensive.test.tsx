@@ -1,7 +1,20 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { SendPageClient } from '../send-page-client'
 import { useRouter } from 'next/navigation'
+
+jest.mock('@/components/session-provider', () => ({
+  useAuthenticatedSession: () => ({
+    token: 'test-token',
+    userId: 'user-1',
+    merchantId: 'merchant-1',
+  }),
+}))
+
+jest.mock('@/lib/api', () => ({
+  api: { createRemittance: jest.fn().mockResolvedValue({}) },
+  ApiError: class ApiError extends Error {},
+}))
 
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
@@ -44,11 +57,6 @@ describe('SendPageClient', () => {
         target: { value: 'GABCD' },
       })
       expect(continueButton).toBeDisabled()
-
-      fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
-        target: { value: 'GABCDE' },
-      })
-      expect(continueButton).toBeDisabled()
     })
 
     it('Continue is enabled when recipient input is 6 characters or more', () => {
@@ -76,113 +84,103 @@ describe('SendPageClient', () => {
   })
 
   describe('Amount step', () => {
-    beforeEach(() => {
-      const { rerender } = render(<SendPageClient />)
-      
-      fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
-        target: { value: 'GABCDEF123' },
-      })
-      fireEvent.click(screen.getByRole('button', { name: /continue/i }))
-      rerender(<SendPageClient />)
-    })
-
     it('numpad correctly builds amount string', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
       fireEvent.click(screen.getByRole('button', { name: /continue/i }))
 
-      fireEvent.click(screen.getByRole('button', { name: '1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 1' }))
       expect(screen.getByText('1', { selector: 'span' })).toBeInTheDocument()
 
-      fireEvent.click(screen.getByRole('button', { name: '2' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 2' }))
       expect(screen.getByText('12', { selector: 'span' })).toBeInTheDocument()
 
-      fireEvent.click(screen.getByRole('button', { name: '3' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 3' }))
       expect(screen.getByText('123', { selector: 'span' })).toBeInTheDocument()
     })
 
     it('numpad handles decimal correctly', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
       fireEvent.click(screen.getByRole('button', { name: /continue/i }))
 
-      fireEvent.click(screen.getByRole('button', { name: '5' }))
-      fireEvent.click(screen.getByRole('button', { name: '.' }))
-      fireEvent.click(screen.getByRole('button', { name: '2' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 5' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add decimal point' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 2' }))
       expect(screen.getByText('5.2', { selector: 'span' })).toBeInTheDocument()
 
       // Should not allow multiple decimal points
-      fireEvent.click(screen.getByRole('button', { name: '.' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add decimal point' }))
       expect(screen.getByText('5.2', { selector: 'span' })).toBeInTheDocument()
     })
 
     it('numpad handles decimal at start', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
       fireEvent.click(screen.getByRole('button', { name: /continue/i }))
 
-      fireEvent.click(screen.getByRole('button', { name: '.' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add decimal point' }))
       expect(screen.getByText('0.', { selector: 'span' })).toBeInTheDocument()
     })
 
     it('numpad handles backspace', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
       fireEvent.click(screen.getByRole('button', { name: /continue/i }))
 
-      fireEvent.click(screen.getByRole('button', { name: '1' }))
-      fireEvent.click(screen.getByRole('button', { name: '2' }))
-      fireEvent.click(screen.getByRole('button', { name: '3' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 2' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 3' }))
       expect(screen.getByText('123', { selector: 'span' })).toBeInTheDocument()
 
-      fireEvent.click(screen.getByRole('button', { name: '⌫' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Delete amount' }))
       expect(screen.getByText('12', { selector: 'span' })).toBeInTheDocument()
 
-      fireEvent.click(screen.getByRole('button', { name: '⌫' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Delete amount' }))
       expect(screen.getByText('1', { selector: 'span' })).toBeInTheDocument()
 
-      fireEvent.click(screen.getByRole('button', { name: '⌫' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Delete amount' }))
       expect(screen.getByText('0', { selector: 'span' })).toBeInTheDocument()
     })
 
     it('numpad limits decimal places to 6', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
       fireEvent.click(screen.getByRole('button', { name: /continue/i }))
 
-      fireEvent.click(screen.getByRole('button', { name: '1' }))
-      fireEvent.click(screen.getByRole('button', { name: '.' }))
-      fireEvent.click(screen.getByRole('button', { name: '1' }))
-      fireEvent.click(screen.getByRole('button', { name: '2' }))
-      fireEvent.click(screen.getByRole('button', { name: '3' }))
-      fireEvent.click(screen.getByRole('button', { name: '4' }))
-      fireEvent.click(screen.getByRole('button', { name: '5' }))
-      fireEvent.click(screen.getByRole('button', { name: '6' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add decimal point' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 1' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 2' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 3' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 4' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 5' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 6' }))
       expect(screen.getByText('1.123456', { selector: 'span' })).toBeInTheDocument()
 
       // Should not add 7th decimal place
-      fireEvent.click(screen.getByRole('button', { name: '7' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 7' }))
       expect(screen.getByText('1.123456', { selector: 'span' })).toBeInTheDocument()
     })
 
     it('Review button is disabled when amount is zero or empty', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
@@ -191,30 +189,30 @@ describe('SendPageClient', () => {
       const reviewButton = screen.getByRole('button', { name: /review/i })
       expect(reviewButton).toBeDisabled()
 
-      fireEvent.click(screen.getByRole('button', { name: '0' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 0' }))
       expect(reviewButton).toBeDisabled()
 
-      fireEvent.click(screen.getByRole('button', { name: '.' }))
-      fireEvent.click(screen.getByRole('button', { name: '0' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add decimal point' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 0' }))
       expect(reviewButton).toBeDisabled()
     })
 
     it('Review button is enabled when amount is greater than zero', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
       fireEvent.click(screen.getByRole('button', { name: /continue/i }))
 
-      fireEvent.click(screen.getByRole('button', { name: '5' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enter amount 5' }))
       const reviewButton = screen.getByRole('button', { name: /review/i })
       expect(reviewButton).not.toBeDisabled()
     })
 
     it('navigating back from amount step returns to recipient step', () => {
       render(<SendPageClient />)
-      
+
       fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
         target: { value: 'GABCDEF123' },
       })
@@ -239,7 +237,7 @@ describe('SendPageClient', () => {
     fireEvent.click(screen.getByRole('button', { name: /continue/i }))
 
     const amountDisplay = screen.getByText('0', { selector: 'span' }).parentElement?.parentElement
-    const keypad = screen.getByRole('button', { name: '1' }).parentElement
+    const keypad = screen.getByRole('button', { name: 'Enter amount 1' }).parentElement
 
     expect(amountDisplay).toHaveClass('flex-1')
     expect(amountDisplay).toHaveClass('shrink-0')

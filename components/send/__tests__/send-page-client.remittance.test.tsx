@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { SendPageClient } from '../send-page-client'
 import { useRouter } from 'next/navigation'
@@ -9,7 +9,11 @@ jest.mock('next/navigation', () => ({
 }))
 
 jest.mock('@/components/session-provider', () => ({
-  useAuthenticatedSession: jest.fn(() => ({ token: 'test-token', userId: 'user-1', merchantId: 'merchant-1' })),
+  useAuthenticatedSession: jest.fn(() => ({
+    token: 'test-token',
+    userId: 'user-1',
+    merchantId: 'merchant-1',
+  })),
 }))
 
 jest.mock('@/lib/api', () => ({
@@ -29,7 +33,7 @@ jest.mock('@/lib/api', () => ({
 }))
 
 /** Navigate the UI from the initial recipient step through to the confirm step. */
-async function navigateToConfirm(address: string, amount: string) {
+function navigateToConfirm(address: string, amount: string) {
   // Step 1 → recipient
   fireEvent.change(screen.getByPlaceholderText('G... or @username'), {
     target: { value: address },
@@ -39,9 +43,9 @@ async function navigateToConfirm(address: string, amount: string) {
   // Step 2 → amount (tap numpad keys)
   for (const char of amount) {
     if (char === '.') {
-      fireEvent.click(screen.getByRole('button', { name: '.' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add decimal point' }))
     } else {
-      fireEvent.click(screen.getByRole('button', { name: char }))
+      fireEvent.click(screen.getByRole('button', { name: `Enter amount ${char}` }))
     }
   }
 
@@ -73,7 +77,7 @@ describe('SendPageClient', () => {
     fireEvent.click(screen.getByRole('button', { name: /continue/i }))
 
     const amountDisplay = screen.getByText('0', { selector: 'span' }).parentElement?.parentElement
-    const keypad = screen.getByRole('button', { name: '1' }).parentElement
+    const keypad = screen.getByRole('button', { name: 'Enter amount 1' }).parentElement
 
     expect(amountDisplay).toHaveClass('flex-1')
     expect(amountDisplay).toHaveClass('shrink-0')
@@ -110,9 +114,9 @@ describe('SendPageClient', () => {
       expect(mockCreateRemittance).toHaveBeenCalledWith(
         'test-token',
         DESTINATION,
-        10_000_000n,   // 1 XLM in stroops
+        10_000_000n, // 1 XLM in stroops
         'XLM',
-        undefined      // no memo
+        undefined // no memo
       )
     })
 
@@ -125,10 +129,17 @@ describe('SendPageClient', () => {
   it('passes the memo when the user fills in a note', async () => {
     const DESTINATION = 'GDESTINATION1234567890ABCDEFGHIJ'
     mockCreateRemittance.mockResolvedValueOnce({
-      id: 'rem-002', merchant_id: 'merchant-1', destination_address: DESTINATION,
-      amount_stroops: 25_000_000n, asset: 'XLM', memo: 'rent', status: 'pending',
-      tx_hash: null, failure_reason: null,
-      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      id: 'rem-002',
+      merchant_id: 'merchant-1',
+      destination_address: DESTINATION,
+      amount_stroops: 25_000_000n,
+      asset: 'XLM',
+      memo: 'rent',
+      status: 'pending',
+      tx_hash: null,
+      failure_reason: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
 
     render(<SendPageClient />)
@@ -140,9 +151,9 @@ describe('SendPageClient', () => {
     fireEvent.click(screen.getByRole('button', { name: /continue/i }))
 
     // Tap 2.5 on numpad
-    fireEvent.click(screen.getByRole('button', { name: '2' }))
-    fireEvent.click(screen.getByRole('button', { name: '.' }))
-    fireEvent.click(screen.getByRole('button', { name: '5' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter amount 2' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add decimal point' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter amount 5' }))
 
     // Add a note
     fireEvent.change(screen.getByPlaceholderText(/add a note/i), {
@@ -156,7 +167,7 @@ describe('SendPageClient', () => {
       expect(mockCreateRemittance).toHaveBeenCalledWith(
         'test-token',
         DESTINATION,
-        25_000_000n,   // 2.5 XLM in stroops
+        25_000_000n, // 2.5 XLM in stroops
         'XLM',
         'rent'
       )
@@ -166,10 +177,17 @@ describe('SendPageClient', () => {
   it('passes the correct asset symbol when a non-default asset is selected', async () => {
     const DESTINATION = 'GDESTINATION1234567890ABCDEFGHIJ'
     mockCreateRemittance.mockResolvedValueOnce({
-      id: 'rem-003', merchant_id: 'merchant-1', destination_address: DESTINATION,
-      amount_stroops: 10_000_000n, asset: 'USDC', memo: null, status: 'pending',
-      tx_hash: null, failure_reason: null,
-      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      id: 'rem-003',
+      merchant_id: 'merchant-1',
+      destination_address: DESTINATION,
+      amount_stroops: 10_000_000n,
+      asset: 'USDC',
+      memo: null,
+      status: 'pending',
+      tx_hash: null,
+      failure_reason: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
 
     render(<SendPageClient />)
@@ -180,7 +198,7 @@ describe('SendPageClient', () => {
     fireEvent.click(screen.getByRole('button', { name: /continue/i }))
 
     // Tap 1
-    fireEvent.click(screen.getByRole('button', { name: '1' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter amount 1' }))
 
     // Switch asset to USDC
     fireEvent.click(screen.getByRole('button', { name: 'USDC' }))
@@ -203,9 +221,7 @@ describe('SendPageClient', () => {
 
   it('displays an ApiError message to the user when the API rejects', async () => {
     const DESTINATION = 'GDESTINATION1234567890ABCDEFGHIJ'
-    mockCreateRemittance.mockRejectedValueOnce(
-      new ApiError('Insufficient balance', 422)
-    )
+    mockCreateRemittance.mockRejectedValueOnce(new ApiError('Insufficient balance', 422))
 
     render(<SendPageClient />)
     await navigateToConfirm(DESTINATION, '1')
@@ -215,8 +231,8 @@ describe('SendPageClient', () => {
       expect(screen.getByText('Insufficient balance')).toBeInTheDocument()
     })
 
-    // The confirm button must still be present so the user can retry
-    expect(screen.getByRole('button', { name: /confirm/i })).toBeInTheDocument()
+    // The failure step offers a retry
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
     // Must NOT advance to success
     expect(screen.queryByRole('heading', { name: /sent!/i })).not.toBeInTheDocument()
   })
@@ -265,7 +281,7 @@ describe('SendPageClient', () => {
 
   // ── handleSend: guard clauses ──────────────────────────────────────────────
 
-  it('does not call api.createRemittance when no recipient address is set', async () => {
+  it('does not call api.createRemittance when no recipient address is set', () => {
     render(<SendPageClient />)
 
     // Jump straight to amount step without a valid recipient shouldn't be possible

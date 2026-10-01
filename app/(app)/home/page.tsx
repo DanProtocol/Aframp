@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 
@@ -7,7 +8,6 @@ import { ActivityHighlights } from '@/components/wallet/activity-highlights'
 import { BalanceFigure } from '@/components/wallet/balance-figure'
 import { QuickActions } from '@/components/wallet/quick-actions'
 import { QuickConvert } from '@/components/wallet/quick-convert'
-import { RevenueChart } from '@/components/wallet/revenue-chart'
 import { TopAssets } from '@/components/wallet/top-assets'
 import { ErrorState } from '@/components/ui/error-state'
 import { HomePageSkeleton } from '@/components/wallet/home-page-skeleton'
@@ -16,6 +16,17 @@ import { api, type Payment, type PaymentRequest } from '@/lib/api'
 import { useAuthenticatedSession } from '@/components/session-provider'
 import { useDataLoader } from '@/hooks/use-data-loader'
 import { useMemo } from 'react'
+
+// recharts is ~150 KB gzipped, so load the chart after the dashboard renders.
+const RevenueChart = dynamic(
+  () => import('@/components/wallet/revenue-chart').then((mod) => mod.RevenueChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="bg-panel border-hairline h-[19rem] animate-pulse rounded-2xl border" />
+    ),
+  }
+)
 
 interface DashboardData {
   balances: Awaited<ReturnType<typeof api.getBalances>>

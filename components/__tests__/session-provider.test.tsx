@@ -1,6 +1,11 @@
 import { renderHook, act, render, screen, waitFor } from '@testing-library/react'
+import { redirect } from 'next/navigation'
 import { api, type LoginResult, type Me, type OtpChallengeResponse } from '@/lib/api'
 import { SessionProvider, useSession, useAuthenticatedSession } from '../session-provider'
+
+jest.mock('next/navigation', () => ({
+  redirect: jest.fn(),
+}))
 
 let unauthorizedCallback: (() => void) | null = null
 
@@ -303,21 +308,10 @@ describe('SessionProvider', () => {
       spy.mockRestore()
     })
 
-    it('useAuthenticatedSession throws without a session', () => {
+    it('useAuthenticatedSession redirects to /login without a session', () => {
       mockSessionRoute(null)
-      const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
-      function Probe() {
-        useAuthenticatedSession()
-        return null
-      }
-      expect(() =>
-        render(
-          <SessionProvider>
-            <Probe />
-          </SessionProvider>
-        )
-      ).toThrow('This screen requires a signed-in merchant')
-      spy.mockRestore()
+      renderHook(() => useAuthenticatedSession(), { wrapper: SessionProvider })
+      expect(redirect).toHaveBeenCalledWith('/login')
     })
 
     it('useAuthenticatedSession returns the restored session', async () => {

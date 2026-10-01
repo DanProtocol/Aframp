@@ -21,21 +21,19 @@ exports[`ActivityHighlightsSkeleton matches snapshot 1`] = `
       class="flex items-baseline justify-between"
     >
       <div
-        class="relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-32"
+        class="skeleton relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-32"
         data-slot="skeleton"
-        style="opacity: 0.75;"
       >
         <div
-          class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+          class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
         />
       </div>
       <div
-        class="relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-20"
+        class="skeleton relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-20"
         data-slot="skeleton"
-        style="opacity: 0.75;"
       >
         <div
-          class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+          class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
         />
       </div>
     </div>
@@ -43,21 +41,19 @@ exports[`ActivityHighlightsSkeleton matches snapshot 1`] = `
       class="flex items-baseline justify-between"
     >
       <div
-        class="relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-32"
+        class="skeleton relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-32"
         data-slot="skeleton"
-        style="opacity: 0.75;"
       >
         <div
-          class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+          class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
         />
       </div>
       <div
-        class="relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-20"
+        class="skeleton relative overflow-hidden rounded bg-muted/40 dark:bg-muted/30 h-4 w-20"
         data-slot="skeleton"
-        style="opacity: 0.75;"
       >
         <div
-          class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+          class="skeleton-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
         />
       </div>
     </div>

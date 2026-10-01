@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Copy, Check, Camera, AlertCircle, Clock, TriangleAlert } from 'lucide-react'
 import QRCode from 'react-qr-code'
@@ -18,19 +18,6 @@ interface RequestPageClientProps {
 
 type CopyTarget = 'wallet' | 'paymentLink' | 'sep7'
 
-// Mock payment request data — in production, fetch from API
-const MOCK_REQUEST = {
-  id: '123456',
-  amount: 100,
-  currency: 'USD',
-  asset: 'USDC',
-  description: 'Payment for consulting services',
-  requesterName: 'John Doe',
-  requesterWallet: 'GBSN2ZJBRFWTQHWRJQE4GKDJJDSGPVTLQNQCQX7QR5W5VKHNHQH',
-  createdAt: new Date(Date.now() - 3600000),
-  expiresAt: new Date(Date.now() + 86400000),
-}
-
 export function RequestPageClient({ requestId }: RequestPageClientProps) {
   const router = useRouter()
   const [request, setRequest] = useState<PaymentRequest | null>(null)
@@ -38,19 +25,47 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
   const [error, setError] = useState<string | null>(null)
   const [scannerOpen, setScannerOpen] = useState(false)
   const [copied, setCopied] = useState<CopyTarget | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
-  const [scannedAddress, setScannedAddress] = useState<string | null>(null)
   const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isMobile = useMediaQuery('(max-width: 767px)')
+  const [scannedAddress, setScannedAddress] = useState<string | null>(null)
+  const [scanError, setScanError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  const fetchRequest = useCallback(
+    async (signal?: AbortSignal) => {
+      setLoading(true)
+      setError(null)
+      try {
+        const data = await api.getPaymentRequest(requestId, signal)
+        setRequest(data)
+      } catch (cause) {
+        if (cause instanceof DOMException && cause.name === 'AbortError') return
+        if (cause instanceof ApiError && cause.status === 404) {
+          setError('Payment request not found.')
+        } else if (cause instanceof ApiError && cause.status === 0) {
+          setError("We can't reach the server right now. Check your connection and try again.")
+        } else {
+          setError(cause instanceof Error ? cause.message : 'Could not load this payment request.')
+        }
+      } finally {
+        setLoading(false)
+      }
+    },
+    [requestId]
+  )
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => {
-      window.removeEventListener('resize', checkMobile)
+    const controller = new AbortController()
+    void fetchRequest(controller.signal)
+    return () => controller.abort()
+  }, [fetchRequest])
+
+  useEffect(
+    () => () => {
       if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current)
-    }
-  }, [])
+    },
+    []
+  )
 
   const handleCopy = async (target: CopyTarget, value: string) => {
     await navigator.clipboard.writeText(value)
@@ -311,7 +326,7 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
             </div>
             <div className="px-4 pb-4 flex gap-2 mt-2">
               <Button
-                onClick={() => void handleCopy('wallet', MOCK_REQUEST.requesterWallet)}
+                onClick={() => void handleCopy('wallet', request.address)}
                 variant="outline"
                 size="sm"
                 className={cn(

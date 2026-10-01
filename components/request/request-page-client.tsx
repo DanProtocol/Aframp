@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -18,6 +18,8 @@ interface RequestPageClientProps {
   requestId: string
 }
 
+type CopyTarget = 'wallet' | 'paymentLink' | 'sep7'
+
 // Mock payment request data — in production, fetch from API
 const MOCK_REQUEST = {
   id: '123456',
@@ -34,22 +36,30 @@ const MOCK_REQUEST = {
 export function RequestPageClient({ requestId }: RequestPageClientProps) {
   const router = useRouter()
   const [scannerOpen, setScannerOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState<CopyTarget | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [scannedAddress, setScannedAddress] = useState<string | null>(null)
+  const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Detect mobile viewport
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768)
     checkMobile()
     window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
+    return () => {
+      window.removeEventListener('resize', checkMobile)
+      if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current)
+    }
   }, [])
 
-  const handleCopyWallet = async () => {
-    await navigator.clipboard.writeText(MOCK_REQUEST.requesterWallet)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const handleCopy = async (target: CopyTarget, value: string) => {
+    await navigator.clipboard.writeText(value)
+    setCopied(target)
+    if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current)
+    copyFeedbackTimer.current = setTimeout(() => {
+      setCopied((current) => (current === target ? null : current))
+      copyFeedbackTimer.current = null
+    }, 2000)
   }
 
   const handleScanPayment = (address: string) => {
@@ -138,6 +148,51 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
             <p className="text-xs text-muted-foreground text-center">
               Scan with {MOCK_REQUEST.asset} wallet to pay this request
             </p>
+            <div className="flex w-full flex-col gap-2">
+              <Button
+                onClick={() => void handleCopy('paymentLink', window.location.href)}
+                variant="outline"
+                size="sm"
+                className={cn(
+                  'h-9 w-full gap-2 transition-all',
+                  copied === 'paymentLink' &&
+                    'border-emerald-500/40 text-emerald-600 bg-emerald-500/5'
+                )}
+              >
+                {copied === 'paymentLink' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    Copy payment link
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => void handleCopy('sep7', qrValue)}
+                variant="outline"
+                size="sm"
+                className={cn(
+                  'h-9 w-full gap-2 transition-all',
+                  copied === 'sep7' && 'border-emerald-500/40 text-emerald-600 bg-emerald-500/5'
+                )}
+              >
+                {copied === 'sep7' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    Copy SEP-7 URI
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
 
           {/* ── Wallet address ── */}
@@ -152,15 +207,15 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
             </div>
             <div className="px-4 pb-4 flex gap-2 mt-2">
               <Button
-                onClick={handleCopyWallet}
+                onClick={() => void handleCopy('wallet', MOCK_REQUEST.requesterWallet)}
                 variant="outline"
                 size="sm"
                 className={cn(
                   'flex-1 h-9 gap-2 transition-all',
-                  copied && 'border-emerald-500/40 text-emerald-600 bg-emerald-500/5'
+                  copied === 'wallet' && 'border-emerald-500/40 text-emerald-600 bg-emerald-500/5'
                 )}
               >
-                {copied ? (
+                {copied === 'wallet' ? (
                   <>
                     <Check className="w-3.5 h-3.5" />
                     Copied!

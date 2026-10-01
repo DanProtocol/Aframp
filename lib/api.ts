@@ -14,8 +14,9 @@ type UUID = string
 const BASE_URL = '/backend'
 
 /**
- * Amount fields are `i64` on the wire. JSON.parse would silently round anything
- * past 2^53, so these keys are re-quoted before parsing and revived as bigint.
+ * Every backend wire field carrying a large integer must be listed here.
+ * JSON.parse would silently round values past 2^53, so keep this set in sync
+ * with the field-name alternatives in parseWithBigInts' pre-parse regex.
  */
 const BIGINT_KEYS = new Set(['amount_stroops', 'available', 'pending', 'fee_stroops', 'network_fee_stroops', 'total_stroops'])
 
@@ -343,8 +344,17 @@ export interface PushSubscriptionStatus {
   enabled: boolean
 }
 
+const BIGINT_KEYS_PATTERN = Array.from(BIGINT_KEYS).join('|')
+
+/**
+ * Re-quotes large integer values before JSON.parse can round them, then revives
+ * BIGINT_KEYS fields as bigint. The field-name pattern is derived from BIGINT_KEYS.
+ */
 export function parseWithBigInts<T>(text: string): T {
-  const quoted = text.replace(/"(amount_stroops|available|pending)"\s*:\s*(-?\d+)/g, '"$1":"$2"')
+  const quoted = text.replace(
+    new RegExp(`"(${BIGINT_KEYS_PATTERN})"\\s*:\\s*(-?\\d+)`, 'g'),
+    '"$1":"$2"'
+  )
   return JSON.parse(quoted, (key, value) =>
     BIGINT_KEYS.has(key) && typeof value === 'string' ? BigInt(value) : value
   ) as T
@@ -443,10 +453,10 @@ export const api = {
   /** The JWT carries only ids; this is how anything human-readable is rendered. */
   getMe: (token: string, signal?: AbortSignal) => request<Me>('/me', { token, signal }),
 
-  createWallet: (token: string) =>
-    request<Wallet>('/wallet/create', { method: 'POST', body: {}, token }),
+  createWallet: (token: string, signal?: AbortSignal) =>
+    request<Wallet>('/wallet/create', { method: 'POST', body: {}, token, signal }),
 
-  getWallet: (token: string) => request<Wallet>('/wallet', { token }),
+  getWallet: (token: string, signal?: AbortSignal) => request<Wallet>('/wallet', { token, signal }),
 
   getBalances: (token: string, signal?: AbortSignal) =>
     request<Balance[]>('/balance', { token, signal }),

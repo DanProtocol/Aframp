@@ -8,11 +8,17 @@ import {
   Check,
   Camera,
   AlertCircle,
+  Clock,
+  TriangleAlert,
 } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import { Button } from '@/components/ui/button'
 import { QRScanner } from '@/components/send/qr-scanner'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { cn } from '@/lib/utils'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import { api, ApiError, type PaymentRequest } from '@/lib/api'
+import { formatStroops } from '@/lib/money'
 
 interface RequestPageClientProps {
   requestId: string
@@ -35,13 +41,15 @@ const MOCK_REQUEST = {
 
 export function RequestPageClient({ requestId }: RequestPageClientProps) {
   const router = useRouter()
+  const [request, setRequest] = useState<PaymentRequest | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [scannerOpen, setScannerOpen] = useState(false)
   const [copied, setCopied] = useState<CopyTarget | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [scannedAddress, setScannedAddress] = useState<string | null>(null)
   const copyFeedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Detect mobile viewport
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768)
     checkMobile()
@@ -62,14 +70,129 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
     }, 2000)
   }
 
-  const handleScanPayment = (address: string) => {
-    // In production, verify the scanned address and process payment
+  const handleScanPayment = async (address: string) => {
     setScannedAddress(address)
     setScannerOpen(false)
-    // TODO: Submit payment confirmation to backend
+
+    // Validate address format (basic Stellar address validation)
+    if (!/^G[A-Z0-9]{55}$/.test(address)) {
+      setScanError('Invalid Stellar address format')
+      return
+    }
+
+    setSubmitting(true)
+    setScanError(null)
+
+    try {
+      // TODO: Replace mock with actual API endpoint when backend is ready:
+      // await api.confirmScannedPayment(requestId, address)
+      await new Promise((resolve) => setTimeout(resolve, 500))
+    } catch (err) {
+      setScanError(
+        err instanceof Error ? err.message : 'Failed to confirm payment. Please try again.'
+      )
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const qrValue = `stellar:${MOCK_REQUEST.requesterWallet}?amount=${MOCK_REQUEST.amount}&memo=${requestId}`
+  // ── Loading state ──
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
+  // ── Error state ──
+  if (error || !request) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center">
+        <div className="w-full max-w-md flex flex-col min-h-screen relative">
+          <header className="flex items-center gap-3 px-5 pt-6 pb-4">
+            <button
+              onClick={() => router.back()}
+              className="p-2 -ml-2 rounded-full hover:bg-muted transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-base font-semibold tracking-tight">Payment Request</h1>
+          </header>
+          <div className="flex flex-col flex-1 items-center justify-center px-5 gap-4 text-center">
+            <div className="p-4 rounded-full bg-destructive/10">
+              <TriangleAlert className="w-8 h-8 text-destructive" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {error ?? 'This payment request could not be loaded.'}
+            </p>
+            <Button variant="outline" onClick={() => void fetchRequest()}>
+              Try again
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Expired state ──
+  if (request.status === 'expired') {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center">
+        <div className="w-full max-w-md flex flex-col min-h-screen relative">
+          <header className="flex items-center gap-3 px-5 pt-6 pb-4">
+            <button
+              onClick={() => router.back()}
+              className="p-2 -ml-2 rounded-full hover:bg-muted transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-base font-semibold tracking-tight">Payment Request</h1>
+          </header>
+          <div className="flex flex-col flex-1 items-center justify-center px-5 gap-4 text-center">
+            <div className="p-4 rounded-full bg-muted">
+              <Clock className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h2 className="text-lg font-semibold">Request expired</h2>
+            <p className="text-sm text-muted-foreground">
+              This payment request expired on{' '}
+              {new Date(request.expires_at).toLocaleString()}.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Paid state ──
+  if (request.status === 'paid') {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center">
+        <div className="w-full max-w-md flex flex-col min-h-screen relative">
+          <header className="flex items-center gap-3 px-5 pt-6 pb-4">
+            <button
+              onClick={() => router.back()}
+              className="p-2 -ml-2 rounded-full hover:bg-muted transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-base font-semibold tracking-tight">Payment Request</h1>
+          </header>
+          <div className="flex flex-col flex-1 items-center justify-center px-5 gap-4 text-center">
+            <div className="p-4 rounded-full bg-emerald-500/10">
+              <Check className="w-8 h-8 text-emerald-500" />
+            </div>
+            <h2 className="text-lg font-semibold">Payment received</h2>
+            <p className="text-sm text-muted-foreground">
+              {formatStroops(request.amount_stroops)} {request.asset} has been received.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const qrValue = request.sep7_uri ?? `stellar:${request.address}?amount=${formatStroops(request.amount_stroops)}&asset=${request.asset}&memo=${request.memo}`
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center">
@@ -93,35 +216,23 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
             </p>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-bold text-foreground">
-                {MOCK_REQUEST.amount}
+                {formatStroops(request.amount_stroops)}
               </span>
-              <span className="text-lg text-muted-foreground">
-                {MOCK_REQUEST.currency}
-              </span>
+              <span className="text-lg text-muted-foreground">{request.asset}</span>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              on Stellar network via {MOCK_REQUEST.asset}
+              on Stellar network via {request.asset}
             </p>
           </div>
 
           {/* ── Request details ── */}
           <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-4">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-1">
-                Requested by
-              </p>
-              <p className="text-sm font-semibold text-foreground">
-                {MOCK_REQUEST.requesterName}
-              </p>
-            </div>
-            {MOCK_REQUEST.description && (
+            {request.memo && (
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-1">
-                  Description
+                  Reference
                 </p>
-                <p className="text-sm text-foreground">
-                  {MOCK_REQUEST.description}
-                </p>
+                <p className="text-sm text-foreground">{request.memo}</p>
               </div>
             )}
             <div>
@@ -129,7 +240,7 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
                 Expires
               </p>
               <p className="text-sm text-foreground">
-                {MOCK_REQUEST.expiresAt.toLocaleString()}
+                {new Date(request.expires_at).toLocaleString()}
               </p>
             </div>
           </div>
@@ -146,7 +257,7 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
             </div>
 
             <p className="text-xs text-muted-foreground text-center">
-              Scan with {MOCK_REQUEST.asset} wallet to pay this request
+              Scan with {request.asset} wallet to pay this request
             </p>
             <div className="flex w-full flex-col gap-2">
               <Button
@@ -202,7 +313,7 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
                 Payment address
               </p>
               <p className="font-mono text-xs break-all leading-relaxed text-foreground">
-                {MOCK_REQUEST.requesterWallet}
+                {request.address}
               </p>
             </div>
             <div className="px-4 pb-4 flex gap-2 mt-2">
@@ -234,15 +345,26 @@ export function RequestPageClient({ requestId }: RequestPageClientProps) {
           {isMobile && (
             <Button
               onClick={() => setScannerOpen(true)}
-              className="w-full h-12 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl flex gap-2"
+              disabled={submitting}
+              className="w-full h-12 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl flex gap-2 disabled:opacity-40"
             >
               <Camera className="w-5 h-5" />
-              Pay with camera
+              {submitting ? 'Confirming...' : 'Pay with camera'}
             </Button>
           )}
 
+          {scanError && (
+            <div className="rounded-2xl border border-red-500/40 bg-red-500/5 p-4 flex gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-red-700">Error</p>
+                <p className="text-xs text-red-600 mt-1">{scanError}</p>
+              </div>
+            </div>
+          )}
+
           {/* ── Scanned address confirmation ── */}
-          {scannedAddress && (
+          {scannedAddress && !scanError && (
             <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-4 flex gap-3">
               <AlertCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
               <div>

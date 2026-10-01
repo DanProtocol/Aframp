@@ -5,6 +5,11 @@
  * call. Amounts of different assets can't be meaningfully summed together
  * (a stroop of XLM and a stroop of cNGN aren't the same value), so this
  * buckets per day *and* per asset rather than producing one blended total.
+ *
+ * PRECISION NOTE: Stroops are converted to Number for display. Number() silently
+ * loses precision for values > Number.MAX_SAFE_INTEGER (2^53 - 1, ~9e15).
+ * For XLM (12 decimals), this is ~900 million XLM. Merchants with balances above
+ * this threshold will see rounded chart values. Set a warning/cap if needed.
  */
 
 import type { Payment } from './api'
@@ -35,8 +40,9 @@ function weekdayLabel(date: Date): string {
  * injectable so tests don't depend on the real clock.
  *
  * Amounts are converted from stroops to whole units only here, for display —
- * this is a chart aggregate, not a ledger balance, so the float precision
- * loss `lib/money.ts` otherwise avoids is acceptable.
+ * this is a chart aggregate, not a ledger balance. Note: values exceeding
+ * Number.MAX_SAFE_INTEGER (~9e15 stroops, ~900M XLM for 12-decimal assets)
+ * will round silently. A warning is logged if this occurs.
  */
 export function buildDailyRevenue(
   payments: Payment[],
@@ -67,6 +73,12 @@ export function buildDailyRevenue(
     const dayTotals = totalsByDay.get(day.date)
     if (!dayTotals) continue
     for (const [asset, stroops] of dayTotals) {
+      if (stroops > Number.MAX_SAFE_INTEGER) {
+        console.warn(
+          `[revenue] Precision loss: ${asset} balance ${stroops} exceeds MAX_SAFE_INTEGER. ` +
+          `Converted value may be rounded. Consider using BigInt display or capping display.`
+        )
+      }
       day.totals[asset] = Number(stroops) / Number(STROOPS_PER_UNIT)
     }
   }

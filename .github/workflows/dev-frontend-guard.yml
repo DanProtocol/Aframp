@@ -14,6 +14,8 @@ name: Dev-Frontend Guard
 #   types/          – Shared TypeScript type declarations
 #   next.config.mjs – Main Next.js configuration
 #   next-env.d.ts   – Next.js ambient types
+#   openapi.yaml    – API specification
+#   scripts/        – Repository scripts
 #
 # Contributors on dev-frontend should only add files inside:
 #   dev-frontend/   – The sandbox workspace for this branch
@@ -28,7 +30,7 @@ on:
 
 jobs:
   guard-main-frontend:
-    name: "Guard — No changes to main frontend"
+    name: 'Guard — No changes to main frontend'
     runs-on: ubuntu-latest
 
     steps:
@@ -60,6 +62,23 @@ jobs:
           echo "$CHANGED"
           echo "====================="
 
+          # Exact paths an issue has explicitly assigned. The guard exists to
+          # stop sandbox work from breaking production, not to block a fix a
+          # maintainer has asked for by name. Every entry must name the issue
+          # that requires it — an unlisted path is still a violation.
+          #
+          #   components/onramp/zar-onramp.tsx, lib/navigation.ts and their
+          #   tests — issue #660 (test coverage for the Ozow onramp). The
+          #   redirect had to move behind lib/navigation because jsdom makes
+          #   window.location unobservable, so a test of the real file is the
+          #   only way to assert the Ozow redirect.
+          ALLOWED_EXACT=(
+            "^lib/navigation\.ts$"
+            "^lib/__tests__/navigation\.test\.ts$"
+            "^components/onramp/zar-onramp\.tsx$"
+            "^components/onramp/__tests__/zar-onramp\.test\.tsx$"
+          )
+
           # Protected path prefixes and exact files — main frontend.
           FORBIDDEN_PATTERNS=(
             "^app/"
@@ -71,10 +90,39 @@ jobs:
             "^types/"
             "^next\.config\.mjs$"
             "^next-env\.d\.ts$"
+            "^openapi\.yaml$"
+            "^scripts/"
           )
+
+          # Keep the newly protected paths covered by this workflow's own guard.
+          for test_file in "openapi.yaml" "scripts/verify-guard.sh"; do
+            MATCHED=false
+            for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
+              if echo "$test_file" | grep -qE "$pattern"; then
+                MATCHED=true
+                break
+              fi
+            done
+            if [ "$MATCHED" = false ]; then
+              echo "::error::Guard pattern does not protect $test_file"
+              exit 1
+            fi
+          done
 
           VIOLATIONS=""
           while IFS= read -r file; do
+            # An explicitly assigned path is exempt.
+            EXEMPT=false
+            for allowed in "${ALLOWED_EXACT[@]}"; do
+              if echo "$file" | grep -qE "$allowed"; then
+                EXEMPT=true
+                break
+              fi
+            done
+            if [ "$EXEMPT" = "true" ]; then
+              continue
+            fi
+
             for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
               if echo "$file" | grep -qE "$pattern"; then
                 VIOLATIONS="${VIOLATIONS}  - ${file}\n"

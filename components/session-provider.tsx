@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { redirect } from 'next/navigation'
 import {
   api,
   setUnauthorizedHandler,
@@ -9,6 +10,7 @@ import {
   type Me,
   type OtpChallengeResponse,
 } from '@/lib/api'
+import { clearCsrfToken, getCsrfToken } from '@/lib/csrf'
 
 const STORAGE_KEY = 'aframp.session'
 
@@ -26,13 +28,20 @@ interface SessionContextValue {
    * no-phone accounts) vs a challenge (everyone else) that needs `/verify`. */
   signIn: (email: string, password: string) => Promise<LoginResult>
   /** Always a challenge — the account doesn't exist until `completeOtp` succeeds. */
-  signUp: (email: string, password: string, name: string, phoneNumber: string) => Promise<OtpChallengeResponse>
+  signUp: (
+    email: string,
+    password: string,
+    name: string,
+    phoneNumber: string
+  ) => Promise<OtpChallengeResponse>
   completeOtp: (challengeId: string, code: string) => Promise<void>
-  signOut: () => void
+  signOut: () => Promise<void>
   /** Re-fetches /me and updates any cached profile data. */
   refreshMe: () => Promise<Me | null>
   /** Latest profile data from /me, if fetched. */
   me: Me | null
+  /** True while the logout API call is in flight. */
+  isLoggingOut: boolean
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null)
@@ -49,8 +58,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [ready, setReady] = useState(false)
   const [me, setMe] = useState<Me | null>(null)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
+    // Mint the CSRF token up front rather than lazily on the first mutation:
+    // `middleware.ts` rejects a state-changing request that arrives without
+    // one, and seeding here means even an immediate submit has a token.
+    getCsrfToken()
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY)
       if (stored) setSession(JSON.parse(stored) as Session)
@@ -81,9 +95,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [persist]
   )
 
-  const signUp = useCallback((email: string, password: string, name: string, phoneNumber: string) => {
-    return api.signup(email, password, name, phoneNumber)
-  }, [])
+  const signUp = useCallback(
+    (email: string, password: string, name: string, phoneNumber: string) => {
+      return api.signup(email, password, name, phoneNumber)
+    },
+    []
+  )
 
   const completeOtp = useCallback(
     async (challengeId: string, code: string) => {
@@ -92,13 +109,30 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [persist]
   )
 
-  const signOut = useCallback(() => {
-    // Best-effort: a failed logout call shouldn't block clearing the local
-    // session, but it's the only thing that clears the server-side cookie.
-    if (session) api.logout(session.token).catch(() => {})
-    window.localStorage.removeItem(STORAGE_KEY)
-    setSession(null)
-    setMe(null)
+  const signOut = useCallback(async () => {
+    setIsLoggingOut(true)
+    try {
+      if (session) {
+        // Must await logout before clearing local state to ensure server-side
+        // session is invalidated. Use a short timeout to prevent user being
+        // blocked indefinitely if the request hangs.
+        const logoutPromise = api.logout(session.token)
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Logout timeout')), 5000)
+        )
+        await Promise.race([logoutPromise, timeoutPromise]).catch(() => {
+          // Timeout or other error; continue with local cleanup.
+        })
+      }
+    } finally {
+      window.localStorage.removeItem(STORAGE_KEY)
+      // The token is bound to the session that just ended; dropping it means
+      // the next sign-in starts from a fresh one.
+      clearCsrfToken()
+      setSession(null)
+      setMe(null)
+      setIsLoggingOut(false)
+    }
   }, [session])
 
   const refreshMe = useCallback(async () => {
@@ -120,8 +154,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [signOut])
 
   const value = useMemo(
-    () => ({ session, ready, signIn, signUp, completeOtp, signOut, refreshMe, me }),
-    [session, ready, signIn, signUp, completeOtp, signOut, refreshMe, me]
+    () => ({ session, ready, signIn, signUp, completeOtp, signOut, refreshMe, me, isLoggingOut }),
+    [session, ready, signIn, signUp, completeOtp, signOut, refreshMe, me, isLoggingOut]
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
@@ -139,6 +173,6 @@ export function useSession() {
  */
 export function useAuthenticatedSession(): Session {
   const { session } = useSession()
-  if (!session) throw new Error('This screen requires a signed-in merchant')
+  if (!session) redirect('/login')
   return session
 }

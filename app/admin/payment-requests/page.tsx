@@ -1,11 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { AdminTable } from '@/components/admin/admin-table'
 import { Badge } from '@/components/ui/badge'
-import { api, type AdminPaymentRequestRow, type PaymentRequestStatus } from '@/lib/api'
+import { api, type PaymentRequestStatus } from '@/lib/api'
 import { formatStroops } from '@/lib/money'
 import { useAuthenticatedSession } from '@/components/session-provider'
+import { useAdminPagination } from '@/hooks/use-admin-pagination'
 
 function statusVariant(status: PaymentRequestStatus) {
   if (status === 'paid') return 'default' as const
@@ -24,27 +25,13 @@ function formatWhen(iso: string): string {
 
 export default function AdminPaymentRequestsPage() {
   const { token } = useAuthenticatedSession()
-  const [rows, setRows] = useState<AdminPaymentRequestRow[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const load = useCallback(
-    async (signal?: AbortSignal) => {
-      setError(null)
-      try {
-        setRows(await api.adminPaymentRequests(token, 100, signal))
-      } catch (cause) {
-        if (cause instanceof DOMException && cause.name === 'AbortError') return
-        setError(cause instanceof Error ? cause.message : 'Could not load payment requests')
-      }
-    },
-    [token]
+  const { rows, error, page, pageSize, hasNextPage, setPage, retry } = useAdminPagination(
+    useCallback(
+      (requestedPage, requestedPageSize, signal) =>
+        api.adminPaymentRequests(token, requestedPage, requestedPageSize, signal),
+      [token]
+    )
   )
-
-  useEffect(() => {
-    const controller = new AbortController()
-    void load(controller.signal)
-    return () => controller.abort()
-  }, [load])
 
   return (
     <div>
@@ -57,7 +44,11 @@ export default function AdminPaymentRequestsPage() {
         <AdminTable
           rows={rows}
           error={error}
-          onRetry={() => void load()}
+          onRetry={retry}
+          page={page}
+          pageSize={pageSize}
+          hasNextPage={hasNextPage}
+          onPageChange={setPage}
           getRowKey={(row) => row.id}
           emptyMessage="No payment requests yet."
           columns={[

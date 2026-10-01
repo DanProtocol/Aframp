@@ -1,3 +1,14 @@
+/**
+ * Cash-out (offramp) rules per asset: which banks it settles to, the minimum
+ * amount, and the account number format.
+ *
+ * **Units: every amount here is in stroops, never whole asset units.**
+ * Stellar amounts are integers of stroops where 1 unit = 10,000,000 stroops,
+ * so `minimumStroops: 500_000_000n` is 50 cNGN. The conversions, the
+ * `formatStroops` display helper and the `parseAmountToStroops` input parser
+ * all live in `lib/money.ts` — use them rather than dividing by hand.
+ */
+
 import type { Balance } from '@/lib/api'
 import { BANKS_BY_COUNTRY, type Bank, type BankCountry } from '@/lib/banks'
 import { formatStroops, isAmountMultipleOf } from '@/lib/money'

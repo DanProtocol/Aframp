@@ -108,8 +108,13 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      # docker-compose.test.yml mounts node_modules and .next as anonymous
+      # volumes inside the repo bind mount, which leaves root-owned empty
+      # directories in the checkout; clear them so npm can write.
       - name: Install dependencies
-        run: npm ci
+        run: |
+          sudo rm -rf node_modules .next
+          npm ci
 
       - name: Check route bundle budget
         run: |

@@ -13,8 +13,7 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { OZOW_BANKS } from '@/lib/payment-providers'
-import { calculateFees, formatCurrency } from '@/lib/payment-providers'
+import { OZOW_BANKS, calculateFees, formatCurrency, validateOzowPaymentUrl } from '@/lib/payment-providers'
 import { api } from '@/lib/api'
 
 interface ZarOnrampProps {
@@ -47,7 +46,11 @@ export function ZarOnramp({ token }: ZarOnrampProps) {
         returnUrl
       )
 
-      // Redirect to Ozow payment page
+      // Validate the payment URL before redirecting to prevent open-redirect
+      // and javascript: injection attacks if the backend is ever compromised.
+      validateOzowPaymentUrl(payment_url)
+
+      // Safe to redirect
       window.location.href = payment_url
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to initiate payment')
